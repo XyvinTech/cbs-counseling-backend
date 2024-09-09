@@ -376,19 +376,31 @@ exports.getAvailableTimes = async (req, res) => {
     previousDate.setDate(currentDate.getDate() - 1);
     const nextDate = new Date(currentDate);
     nextDate.setDate(currentDate.getDate() + 1);
+
     const filter = {
-      _id: id,
+      user: id,
       session_date: { $gte: previousDate, $lte: nextDate },
     };
     const session = await Session.find(filter);
-    const times = await Time.find({ user: id, day: day });
-    if (!times) return responseHandler(res, 404, "No times found");
+
+    const times = await Time.findOne({ user: id, day });
+
+    if (!times || !times.times || times.times.length === 0) {
+      return responseHandler(res, 404, "No available times found");
+    }
+
     const availableTimes = times.times.filter(
-      (time) => !session.some((sess) => sess.session_time.start == time.start)
+      (time) =>
+        !session.some(
+          (sess) =>
+            sess.session_time.start === time.start &&
+            sess.session_time.end === time.end
+        )
     );
-    return responseHandler(res, 200, "Times found", availableTimes);
+
+    return responseHandler(res, 200, "Available times found", availableTimes);
   } catch (error) {
-    return responseHandler(res, 500, `Internal Server Error ${error.message}`);
+    return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
   }
 };
 
