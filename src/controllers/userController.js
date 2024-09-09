@@ -29,7 +29,7 @@ exports.loginUser = async (req, res) => {
       return responseHandler(res, 401, "Invalid password");
     }
 
-    const token = generateToken(findUser.id);
+    const token = generateToken(findUser._id);
 
     return responseHandler(res, 200, "Login successfull", token);
   } catch (error) {
@@ -79,7 +79,9 @@ exports.updateStudent = async (req, res) => {
       return responseHandler(res, 404, "Student not found");
     }
 
-    const updateStudent = await User.update(id, req.body);
+    const updateStudent = await User.findByIdAndUpdate(id, req.body, {
+      new: true,
+    });
     if (updateStudent) {
       return responseHandler(
         res,
@@ -195,7 +197,8 @@ exports.rescheduleSession = async (req, res) => {
       return responseHandler(res, 400, `Session date & time is required`);
     const session = await Session.findById(id)
       .populate("user")
-      .populate("counsellor");
+      .populate("counsellor")
+      .populate("case_id");
     if (!session) return responseHandler(res, 404, "Session not found");
     if (session.status !== "pending")
       return responseHandler(res, 400, "You can't reschedule this session");
@@ -217,21 +220,21 @@ exports.rescheduleSession = async (req, res) => {
       return responseHandler(res, 400, "Session reschedule failed");
     const data = {
       user: req.userId,
-      caseId: updatedSession.case_id,
-      session: updatedSession._id,
+      case_id: rescheduleSession.case_id,
+      session_id: rescheduleSession._id,
       details:
         "Your session reschedule has been requested. Please wait for approval",
     };
     await Notification.create(data);
     const notif_data = {
-      user: updatedSession.counsellor._id,
-      caseId: updatedSession.case_id,
-      session: updatedSession._id,
+      user: rescheduleSession.counsellor._id,
+      case_id: rescheduleSession.case_id,
+      session_id: rescheduleSession._id,
       details: "Session reschedule requested",
     };
     const userEmailData = {
       to: session.user.email,
-      subject: `Your session with Session ID: ${session.session_id} and Case ID: ${session.case_id} has been rescheduled`,
+      subject: `Your session with Session ID: ${session.session_id} and Case ID: ${session.case_id.case_id} has been rescheduled`,
       text: `Dear ${
         session.user.name
       },\n\nWe have received your request to reschedule your session with ${
@@ -251,7 +254,7 @@ exports.rescheduleSession = async (req, res) => {
     await Notification.create(notif_data);
     const counsellorEmailData = {
       to: session.counsellor.email,
-      subject: `Session Rescheduled: Session ID: ${session.session_id} and Case ID: ${session.case_id}`,
+      subject: `Session Rescheduled: Session ID: ${session.session_id} and Case ID: ${session.case_id.case_id}`,
       text: `Dear ${
         session.counsellor.name
       },\n\nPlease be informed that the session with ${
@@ -373,8 +376,12 @@ exports.getAvailableTimes = async (req, res) => {
     previousDate.setDate(currentDate.getDate() - 1);
     const nextDate = new Date(currentDate);
     nextDate.setDate(currentDate.getDate() + 1);
-    const session = await Session.findByCounseller(id, previousDate, nextDate);
-    const times = await Time.findTimes({ userId: id, day });
+    const filter = {
+      _id: id,
+      session_date: { $gte: previousDate, $lte: nextDate },
+    };
+    const session = await Session.find(filter);
+    const times = await Time.find({ user: id, day: day });
     if (!times) return responseHandler(res, 404, "No times found");
     const availableTimes = times.times.filter(
       (time) => !session.some((sess) => sess.session_time.start == time.start)
@@ -388,7 +395,9 @@ exports.getAvailableTimes = async (req, res) => {
 exports.getAllCounsellors = async (req, res) => {
   try {
     const { counsellorType } = req.query;
-    const counsellors = await User.findAllCounsellors({ counsellorType });
+    const counsellors = await User.find({
+      counsellorType: { $in: [counsellorType] },
+    });
     const mappedData = counsellors.map((counsellor) => {
       return {
         id: counsellor.id,
@@ -436,15 +445,25 @@ exports.cancelSession = async (req, res) => {
   try {
     const { id } = req.params;
     const { cancel_remark } = req.body;
-    const session = await Session.cancel(id, { cancel_remark });
-    const get_session = await Session.findById(id);
+    const session = await Session.findByIdAndUpdate(
+      id,
+      {
+        cancel_remark,
+        status: "cancelled",
+      },
+      { new: true }
+    );
+    const get_session = await Session.findById(id)
+      .populate("user")
+      .populate("counsellor")
+      .populate("case_id");
     const counsellorEmailData = {
-      to: session.counsellor_email,
-      subject: `Session Canceled: Session ID: ${get_session.session_id} and Case ID: ${get_session.case_id}`,
+      to: get_session.counsellor.email,
+      subject: `Session Canceled: Session ID: ${get_session.session_id} and Case ID: ${get_session.case_id.case_id}`,
       text: `Dear ${
-        get_session.counsellor_name
+        get_session.counsellor.name
       },\n\nWe wanted to inform you that the session with ${
-        get_session.user_name
+        get_session.user.name
       }, scheduled for ${moment(get_session.session_date).format(
         "DD-MM-YYYY"
       )} at ${get_session.session_time.start}-${
@@ -452,7 +471,13 @@ exports.cancelSession = async (req, res) => {
       }, has been canceled by the student for the following reason: ${cancel_remark}.`,
     };
     await sendMail(counsellorEmailData);
-    await Case.cancel(session.case_id);
+    await Case.findByIdAndUpdate(
+      session.case_id,
+      { status: "cancelled" },
+      {
+        new: true,
+      }
+    );
     if (session) {
       return responseHandler(res, 200, "Session cancelled successfully");
     }
@@ -465,7 +490,7 @@ exports.cancelSession = async (req, res) => {
 exports.getFullTimes = async (req, res) => {
   try {
     const { id } = req.params;
-    const times = await Time.findByUserId(id);
+    const times = await Time.find({ user: id });
     if (!times) return responseHandler(res, 404, "No times found");
     const days = times
       .filter((time) => Array.isArray(time.times) && time.times.length > 0)
@@ -479,7 +504,7 @@ exports.getFullTimes = async (req, res) => {
 exports.getNotifications = async (req, res) => {
   try {
     const { userId } = req;
-    const notifications = await Notification.findByUserId(userId);
+    const notifications = await Notification.find({ user: userId });
     if (!notifications)
       return responseHandler(res, 400, `No Notification found`);
     return responseHandler(res, 200, `Notification Found`, notifications);
@@ -491,7 +516,11 @@ exports.getNotifications = async (req, res) => {
 exports.markAsRead = async (req, res) => {
   try {
     const { id } = req.params;
-    const notification = await Notification.markAsRead(id);
+    const notification = await Notification.findByIdAndUpdate(
+      id,
+      { isRead: true },
+      { new: true }
+    );
     if (!notification)
       return responseHandler(res, 404, "Notification not found");
     return responseHandler(res, 200, "Notification marked as read");
