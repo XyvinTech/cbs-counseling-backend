@@ -147,10 +147,7 @@ exports.listController = async (req, res) => {
         .sort({ createdAt: -1 })
         .lean();
       if (sessions.length > 0) {
-        const totalCount = await Session.counsellor_count({
-          id: userId,
-          status,
-        });
+        const totalCount = await Session.countDocuments(filter);
         return responseHandler(res, 200, "Reports found", sessions, totalCount);
       }
       return responseHandler(res, 404, "No reports found");
@@ -179,7 +176,7 @@ exports.listController = async (req, res) => {
             session_count: item.sessions.length,
           };
         });
-        const totalCount = await Case.counsellor_count({ id: userId, status });
+        const totalCount = await Case.countDocuments({ id: userId, status });
         return responseHandler(res, 200, "Cases found", mappedData, totalCount);
       }
       return responseHandler(res, 404, "No cases found");

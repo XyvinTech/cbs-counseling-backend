@@ -35,7 +35,7 @@ exports.loginAdmin = async (req, res) => {
       return responseHandler(res, 401, "Invalid password");
     }
 
-    const token = generateToken(user.id);
+    const token = generateToken(user._id);
     return responseHandler(res, 200, "Login successful", {
       token,
       userType,
@@ -154,7 +154,7 @@ exports.deleteAdmin = async (req, res) => {
       return responseHandler(res, 404, "Admin not found");
     }
 
-    const deleteAdmin = await Admin.delete(id);
+    const deleteAdmin = await Admin.findByIdAndDelete(id);
     if (deleteAdmin) {
       return responseHandler(res, 200, `Admin deleted successfully..!`);
     } else {
@@ -236,7 +236,7 @@ exports.createCounsellorBulk = async (req, res) => {
     );
 
     // Create counsellors
-    const users = await User.createMany(hashedUsers);
+    const users = await User.create(hashedUsers);
 
     // Create time entries for each newly created counsellor
     const day = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
@@ -253,7 +253,7 @@ exports.createCounsellorBulk = async (req, res) => {
     }
 
     // Bulk create Time entries
-    await Time.createMany(timeEntries);
+    await Time.create(timeEntries);
 
     return responseHandler(res, 201, "Counsellors created", users);
   } catch (error) {
@@ -293,7 +293,7 @@ exports.createStudentBulk = async (req, res) => {
       })
     );
 
-    const users = await User.createMany(hashedUsers);
+    const users = await User.create(hashedUsers);
     return responseHandler(res, 201, "Students created", users);
   } catch (error) {
     return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
@@ -325,7 +325,9 @@ exports.updateCounsellor = async (req, res) => {
       );
     }
 
-    const updateCounsellor = await User.update(id, req.body);
+    const updateCounsellor = await User.findByIdAndUpdate(id, req.body, {
+      new: true,
+    });
     if (updateCounsellor) {
       return responseHandler(
         res,
@@ -353,7 +355,7 @@ exports.deleteCounsellor = async (req, res) => {
       return responseHandler(res, 404, "Counsellor not found");
     }
 
-    const deleteCounsellor = await User.delete(id);
+    const deleteCounsellor = await User.findByIdAndDelete(id);
     if (deleteCounsellor) {
       return responseHandler(res, 200, `Counsellor deleted successfully..!`);
     } else {
@@ -376,7 +378,7 @@ exports.deleteManyUser = async (req, res) => {
     }
     const deletionResults = await Promise.all(
       ids.map(async (id) => {
-        return await User.delete(id);
+        return await User.findByIdAndDelete(id);
       })
     );
 
@@ -446,7 +448,9 @@ exports.updateStudent = async (req, res) => {
       return responseHandler(res, 404, "Student not found");
     }
 
-    const updateStudent = await User.update(id, req.body);
+    const updateStudent = await User.findByIdAndUpdate(id, req.body, {
+      new: true,
+    });
     if (updateStudent) {
       return responseHandler(
         res,
@@ -474,7 +478,7 @@ exports.deleteStudent = async (req, res) => {
       return responseHandler(res, 404, "Student not found");
     }
 
-    const deleteStudent = await User.delete(id);
+    const deleteStudent = await User.findByIdAndDelete(id);
     if (deleteStudent) {
       return responseHandler(res, 200, `Student deleted successfully..!`);
     } else {
@@ -487,26 +491,45 @@ exports.deleteStudent = async (req, res) => {
 
 exports.listController = async (req, res) => {
   try {
-    const { type, page, searchQuery, limit } = req.query;
+    const { type, page, searchQuery, status, limit = 10 } = req.query;
+    const skipCount = 10 * (page - 1);
     if (type === "students") {
-      const student = await User.findAll({
-        page,
-        searchQuery,
+      const filter = {
         userType: "student",
-      });
+      };
+      if (searchQuery) {
+        filter.$or = [
+          { name: { $regex: searchQuery, $options: "i" } },
+          { email: { $regex: searchQuery, $options: "i" } },
+        ];
+      }
+      const student = await User.find(filter)
+        .skip(skipCount)
+        .limit(limit)
+        .sort({ createdAt: -1 })
+        .lean();
       if (student.length > 0) {
-        const totalCount = await User.count({ userType: "student" });
+        const totalCount = await User.countDocuments(filter);
         return responseHandler(res, 200, "Students found", student, totalCount);
       }
       return responseHandler(res, 404, "No Students found");
     } else if (type === "counsellers") {
-      const student = await User.findAll({
-        page,
-        searchQuery,
-        userType: "counsellor",
-      });
+      const filter = {
+        userType: "student",
+      };
+      if (searchQuery) {
+        filter.$or = [
+          { name: { $regex: searchQuery, $options: "i" } },
+          { email: { $regex: searchQuery, $options: "i" } },
+        ];
+      }
+      const student = await User.find(filter)
+        .skip(skipCount)
+        .limit(limit)
+        .sort({ createdAt: -1 })
+        .lean();
       if (student.length > 0) {
-        const totalCount = await User.count({ userType: "counsellor" });
+        const totalCount = await User.countDocuments(filter);
         return responseHandler(
           res,
           200,
@@ -517,34 +540,48 @@ exports.listController = async (req, res) => {
       }
       return responseHandler(res, 404, "No counsellers found");
     } else if (type === "events") {
-      const event = await Event.findAll({
-        page,
-        searchQuery,
-      });
+      const filter = {};
+      if (searchQuery) {
+        filter.$or = [{ title: { $regex: searchQuery, $options: "i" } }];
+      }
+      const event = await Event.find(filter)
+        .skip(skipCount)
+        .limit(limit)
+        .sort({ createdAt: -1 })
+        .lean();
       if (event.length > 0) {
-        const totalCount = await Event.count();
+        const totalCount = await Event.countDocuments();
         return responseHandler(res, 200, "Events found", event, totalCount);
       }
       return responseHandler(res, 404, "No Events found");
     } else if (type === "sessions") {
-      const sessions = await Session.findAll({
-        page,
-        limit,
-        searchQuery,
-      });
+      const filter = {};
+      if (searchQuery) {
+        filter.$or = [
+          { "user.name": { $regex: searchQuery, $options: "i" } },
+          { "counsellor.name": { $regex: searchQuery, $options: "i" } },
+        ];
+      }
+      const sessions = await Session.find(filter)
+        .populate("user")
+        .populate("counsellor")
+        .skip(skipCount)
+        .limit(limit)
+        .sort({ createdAt: -1 })
+        .lean();
       if (sessions.length > 0) {
-        const totalCount = await Session.count({});
+        const totalCount = await Session.countDocuments();
         return responseHandler(res, 200, "Reports found", sessions, totalCount);
       }
       return responseHandler(res, 404, "No reports found");
     } else if (type === "cases") {
-      const sessions = await Case.find({
-        page,
-        limit,
-        searchQuery,
-      });
+      if (searchQuery) {
+        const filter = {};
+        filter.$or = [{ "user.name": { $regex: searchQuery, $options: "i" } }];
+      }
+      const sessions = await Case.find(filter);
       if (sessions.length > 0) {
-        const totalCount = await Session.count({});
+        const totalCount = await Case.countDocuments(filter);
         return responseHandler(res, 200, "Reports found", sessions, totalCount);
       }
       return responseHandler(res, 404, "No reports found");
