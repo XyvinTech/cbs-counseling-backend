@@ -114,20 +114,31 @@ exports.createSession = async (req, res) => {
     req.body.user = req.userId;
     const session = await Session.create(req.body);
 
-    const sessions = [session.id];
+    const sessions = [session._id];
+
+    const count = await Case.countDocuments();
+    const case_id = `#CS_${String(count).padStart(2, "0")}`;
+
     const caseId = await Case.create({
       user: req.userId,
       sessions,
+      case_id,
     });
 
-    const newSession = await Session.findById(session.id);
+    sessions.case_id = caseId._id;
+    sessions.session_id = `${case_id}/SC_${String(count + 1).padStart(2, "0")}`;
+    await sessions.save();
 
-    session.case_id = caseId.id;
+    const newSession = await Session.findById(session._id)
+      .populate("user")
+      .populate("counsellor");
+
+    session.case_id = caseId._id;
     const emailData = {
       to: session.user_email,
-      subject: `Your session requested with Session ID: ${newSession.session_id} and Case ID: ${caseId.case_id} for ${session.counsellor_name}`,
-      text: `Dear ${session.user_name},\n\nYour appointment request for ${
-        session.counsellor_name
+      subject: `Your session requested with Session ID: ${newSession.session_id} and Case ID: ${caseId.case_id} for ${session.counsellor.name}`,
+      text: `Dear ${session.user.name},\n\nYour appointment request for ${
+        session.counsellor.name
       } for ${moment(session.session_date).format("DD-MM-YYYY")} at ${
         session.session_time.start
       }-${
@@ -137,24 +148,24 @@ exports.createSession = async (req, res) => {
     await sendMail(emailData);
     const data = {
       user: req.userId,
-      caseId: caseId.id,
-      session: session.id,
+      caseId: caseId._id,
+      session: session._id,
       details: "Your session has been requested. Please wait for approval",
     };
     await Notification.create(data);
     const notif_data = {
       user: session.counsellor,
-      caseId: caseId.id,
-      session: session.id,
+      caseId: caseId._id,
+      session: session._id,
       details: "New session requested",
     };
     const counData = {
-      to: session.counsellor_email,
-      subject: `You have a new session requested with Session ID: ${newSession.session_id} and Case ID: ${caseId.case_id} from ${session.user_name}`,
+      to: session.counsellor.email,
+      subject: `You have a new session requested with Session ID: ${newSession.session_id} and Case ID: ${caseId.case_id} from ${session.user.name}`,
       text: `Dear ${
-        session.counsellor_name
+        session.counsellor.name
       },\n\nYou have received an appointment request from ${
-        session.user_name
+        session.user.name
       } for ${moment(session.session_date).format("DD-MM-YYYY")} at ${
         session.session_time.start
       }-${
@@ -179,7 +190,9 @@ exports.rescheduleSession = async (req, res) => {
     const { id } = req.params;
     if (!session_date && !session_time)
       return responseHandler(res, 400, `Session date & time is required`);
-    const session = await Session.findById(id);
+    const session = await Session.findById(id)
+      .populate("user")
+      .populate("counsellor");
     if (!session) return responseHandler(res, 404, "Session not found");
     if (session.status !== "pending")
       return responseHandler(res, 400, "You can't reschedule this session");
@@ -190,30 +203,36 @@ exports.rescheduleSession = async (req, res) => {
       session_time,
       reschedule_remark,
     };
-    const rescheduleSession = await Session.update(id, updatedSession);
+    const rescheduleSession = await Session.findByIdAndUpdate(
+      id,
+      updatedSession,
+      { new: true }
+    )
+      .populate("user")
+      .populate("counsellor");
     if (!rescheduleSession)
       return responseHandler(res, 400, "Session reschedule failed");
     const data = {
       user: req.userId,
-      caseId: updatedSession.caseid,
-      session: updatedSession.id,
+      caseId: updatedSession.case_id,
+      session: updatedSession._id,
       details:
         "Your session reschedule has been requested. Please wait for approval",
     };
     await Notification.create(data);
     const notif_data = {
-      user: updatedSession.counsellor,
-      caseId: updatedSession.caseid,
-      session: updatedSession.id,
+      user: updatedSession.counsellor._id,
+      caseId: updatedSession.case_id,
+      session: updatedSession._id,
       details: "Session reschedule requested",
     };
     const userEmailData = {
-      to: session.user_email,
+      to: session.user.email,
       subject: `Your session with Session ID: ${session.session_id} and Case ID: ${session.case_id} has been rescheduled`,
       text: `Dear ${
-        session.user_name
+        session.user.name
       },\n\nWe have received your request to reschedule your session with ${
-        session.counsellor_name
+        session.counsellor.name
       }. The session, originally scheduled for ${moment(
         session.session_date
       ).format("DD-MM-YYYY")} at ${session.session_time.start}-${
@@ -228,12 +247,12 @@ exports.rescheduleSession = async (req, res) => {
     await sendMail(userEmailData);
     await Notification.create(notif_data);
     const counsellorEmailData = {
-      to: session.counsellor_email,
+      to: session.counsellor.email,
       subject: `Session Rescheduled: Session ID: ${session.session_id} and Case ID: ${session.case_id}`,
       text: `Dear ${
-        session.counsellor_name
+        session.counsellor.name
       },\n\nPlease be informed that the session with ${
-        session.user_name
+        session.user.name
       }, originally scheduled for ${moment(session.session_date).format(
         "DD-MM-YYYY"
       )} at ${session.session_time.start}-${
@@ -258,44 +277,71 @@ exports.rescheduleSession = async (req, res) => {
 
 exports.listController = async (req, res) => {
   try {
-    const { type, page, searchQuery, status } = req.query;
+    const { type, page, searchQuery, status, limit = 10 } = req.query;
+    const skipCount = 10 * (page - 1);
     const { userId } = req;
     if (type === "sessions") {
-      const sessions = await Session.findAllByUserId({
-        userId,
-        page,
-        searchQuery,
-        status,
-      });
+      const filter = {
+        user: userId,
+      };
+      if (status) {
+        filter.status = status;
+      }
+      if (searchQuery) {
+        filter.$or = [
+          { "user.name": { $regex: searchQuery, $options: "i" } },
+          { "counsellor.name": { $regex: searchQuery, $options: "i" } },
+        ];
+      }
+      const sessions = await Session.find(filter)
+        .populate("user")
+        .populate("counsellor")
+        .skip(skipCount)
+        .limit(limit)
+        .sort({ createdAt: -1 })
+        .lean();
       if (sessions.length > 0) {
-        const totalCount = await Session.count({ id: userId, status });
+        const totalCount = await Session.countDocuments(filter);
         return responseHandler(res, 200, "Reports found", sessions, totalCount);
       }
       return responseHandler(res, 404, "No reports found");
     } else if (type === "cases") {
-      const cases = await Case.findByUser({
-        userId,
-        page,
-        searchQuery,
-        status,
-      });
+      const filter = {
+        user: userId,
+      };
+      if (status) {
+        filter.status = status;
+      }
+      if (searchQuery) {
+        filter.$or = [{ "user.name": { $regex: searchQuery, $options: "i" } }];
+      }
+      const cases = await Case.find(filter)
+        .populate("user")
+        .skip(skipCount)
+        .limit(limit)
+        .sort({ createdAt: -1 })
+        .lean();
       if (cases.length > 0) {
-        const totalCount = await Case.user_count({ id: userId });
+        const totalCount = await Case.countDocuments(filter);
         return responseHandler(res, 200, "Cases found", cases, totalCount);
       }
       return responseHandler(res, 404, "No reports found");
     } else if (type === "events") {
-      const event = await Event.findAll({
-        page,
-        searchQuery,
-      });
+      const filter = {};
+      if (searchQuery) {
+        filter.$or = [
+          { title: { $regex: searchQuery, $options: "i" } },
+          { venue: { $regex: searchQuery, $options: "i" } },
+        ];
+      }
+      const event = await Event.find(filter);
       if (event.length > 0) {
-        const totalCount = await Event.count();
+        const totalCount = await Event.countDocuments(filter);
         return responseHandler(res, 200, "Events found", event, totalCount);
       }
       return responseHandler(res, 404, "No Events found");
     } else if (type === "counselling-type") {
-      const types = await Type.findAll();
+      const types = await Type.find();
       if (types.length > 0) {
         const totalCount = types.length;
         return responseHandler(
@@ -360,7 +406,7 @@ exports.getAllCounsellors = async (req, res) => {
 exports.getCaseSessions = async (req, res) => {
   try {
     const { caseId } = req.params;
-    const sessions = await Session.findAllByCaseId(caseId);
+    const sessions = await Session.find({ case_id: caseId });
     if (sessions.length > 0) {
       return responseHandler(res, 200, "Sessions found", sessions);
     }

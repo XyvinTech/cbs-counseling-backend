@@ -199,28 +199,38 @@ exports.listController = async (req, res) => {
 exports.acceptSession = async (req, res) => {
   try {
     const { id } = req.params;
-    const updatedSession = await Session.accept(id);
-    const session = await Session.findById(id);
+    const updatedSession = await Session.findByIdAndUpdate(
+      id,
+      {
+        status: "progress",
+      },
+      { new: true }
+    )
+      .populate("user")
+      .populate("counsellor");
+    const session = await Session.findById(id)
+      .populate("user")
+      .populate("counsellor");
     await Case.accept(updatedSession.case_id);
     const data = {
       user: req.userId,
       caseId: updatedSession.case_id,
-      session: updatedSession.id,
+      session: updatedSession._id,
       details: `Session with ${updatedSession.session_id} is accepted`,
     };
     await Notification.create(data);
     const notif_data = {
-      user: updatedSession.user,
+      user: updatedSession.user._id,
       caseId: updatedSession.case_id,
-      session: updatedSession.id,
+      session: updatedSession._id,
       details: `Your session with ${updatedSession.session_id} is accepted`,
     };
     const emailDataForUserAccepted = {
-      to: session.user_email,
+      to: session.user.email,
       subject: `Your session with Session ID: ${session.session_id} has been accepted`,
-      text: `Dear ${session.user_name},
+      text: `Dear ${session.user.name},
     
-    Your appointment request for ${session.counsellor_name} on ${moment(
+    Your appointment request for ${session.counsellor.name} on ${moment(
         session.session_date
       ).format("DD-MM-YYYY")} at ${session.session_time.start}-${
         session.session_time.end
@@ -240,19 +250,19 @@ exports.acceptSession = async (req, res) => {
     await sendMail(emailDataForUserAccepted);
     await Notification.create(notif_data);
     const emailDataForCounselorAccepted = {
-      to: session.counsellor_email,
+      to: session.counsellor.email,
       subject: `Session with Session ID: ${session.session_id} has been accepted`,
-      text: `Dear ${session.counsellor_name},
+      text: `Dear ${session.counsellor.name},
     
-    The session request from ${session.user_name} has been accepted. 
+    The session request from ${session.user.name} has been accepted. 
     
     Here are the details of the session:
     - **Session ID**: ${session.session_id}
     - **Case ID**: ${session.case_id}
     - **Date**: ${moment(session.session_date).format("DD-MM-YYYY")}
     - **Time**: ${session.session_time.start}-${session.session_time.end}
-    - **User**: ${session.user_name}
-    - **User Email**: ${session.user_email}
+    - **User**: ${session.user.name}
+    - **User Email**: ${session.user.email}
     
     Please prepare for the session accordingly.
     
@@ -306,22 +316,45 @@ exports.addEntry = async (req, res) => {
 
     //? Handle case closure
     if (close) {
-      const closeCase = await Case.close(id, {
-        concern_raised,
-        reason_for_closing,
-      });
+      const closeCase = await Case.findByIdAndUpdate(
+        id,
+        {
+          concern_raised,
+          reason_for_closing,
+          status: "completed",
+        },
+        { new: true }
+      );
       //? Attempt to close the session
-      await Session.close(session_id, { case_details: details, interactions });
+      await Session.findByIdAndUpdate(
+        session_id,
+        { case_details: details, interactions, status: "completed" },
+        {
+          new: true,
+        }
+      );
       if (!closeCase) return responseHandler(res, 400, "Case close failed");
       return responseHandler(res, 200, "Case closed successfully", closeCase);
     }
 
     //? Handle referral with session
     if (refer && with_session) {
-      await Case.refer(id, { concern_raised });
-      await Session.close(session_id, { case_details: details, interactions });
+      const refCase = await Case.findByIdAndUpdate(
+        id,
+        { concern_raised, status: "referred" },
+        { new: true }
+      );
+      await Session.findByIdAndUpdate(
+        session_id,
+        { case_details: details, interactions, status: "completed" },
+        {
+          new: true,
+        }
+      );
       if (!checkSession) return responseHandler(res, 404, "Session not found");
-
+      const sc_id = `${refCase.case_id}/SC_${String(
+        refCase.session_ids.length + 1
+      ).padStart(2, "0")}`;
       const data = {
         user: user_id,
         session_date: date,
@@ -329,6 +362,7 @@ exports.addEntry = async (req, res) => {
         type: checkSession.type,
         description: checkSession.description,
         counsellor: refer,
+        session_id: sc_id,
       };
 
       const session = await Session.create(data);
@@ -336,18 +370,29 @@ exports.addEntry = async (req, res) => {
 
       const fetchCase = await Case.findById(id);
 
-      const upCase = await Case.update(id, {
-        sessions: [...fetchCase.sessions.map((session) => session), session.id],
-        concern_raised: concern_raised,
-      });
+      const upCase = await Case.findByIdAndUpdate(
+        id,
+        {
+          session_ids: [
+            ...fetchCase.session_ids.map((session) => session),
+            session._id,
+          ],
+          concern_raised: concern_raised,
+        },
+        {
+          new: true,
+        }
+      );
 
-      const newSession = await Session.findById(session.id);
+      const newSession = await Session.findById(session._id)
+        .populate("counsellor")
+        .populate("user");
 
       const emailData = {
-        to: session.user_email,
-        subject: `Your session requested with Session ID: ${newSession.session_id} and Case ID: ${upCase.case_id} for ${session.counsellor_name}`,
-        text: `Dear ${session.user_name},\n\nYour appointment request for ${
-          session.counsellor_name
+        to: session.user.email,
+        subject: `Your session requested with Session ID: ${newSession.session_id} and Case ID: ${upCase.case_id} for ${session.counsellor.name}`,
+        text: `Dear ${session.user.name},\n\nYour appointment request for ${
+          session.counsellor.name
         } for ${moment(session.session_date).format("DD-MM-YYYY")} at ${
           session.session_time.start
         }-${
@@ -358,24 +403,24 @@ exports.addEntry = async (req, res) => {
       await sendMail(emailData);
       const notifData = {
         user: req.userId,
-        caseId: upCase.id,
-        session: session.id,
+        caseId: upCase._id,
+        session: session._id,
         details: "Your session has been requested. Please wait for approval",
       };
       await Notification.create(notifData);
       const notif_data = {
-        user: session.counsellor,
-        caseId: upCase.id,
-        session: session.id,
+        user: session.counsellor._id,
+        caseId: upCase._id,
+        session: session._id,
         details: "New session requested",
       };
       const counData = {
-        to: session.counsellor_email,
-        subject: `You have a new session requested with Session ID: ${newSession.session_id} and Case ID: ${upCase.case_id} from ${session.user_name}`,
+        to: session.counsellor.email,
+        subject: `You have a new session requested with Session ID: ${newSession.session_id} and Case ID: ${upCase.case_id} from ${session.user.name}`,
         text: `Dear ${
-          session.counsellor_name
+          session.counsellor.name
         },\n\nYou have received an appointment request from ${
-          session.user_name
+          session.user.name
         } for ${moment(session.session_date).format("DD-MM-YYYY")} at ${
           session.session_time.start
         }-${
@@ -388,25 +433,35 @@ exports.addEntry = async (req, res) => {
       return responseHandler(res, 201, "Session created successfully", session);
     } else if (refer) {
       const counsellor = await User.findById(refer);
-      const fetchCase = await Case.findById(id);
+      const fetchCase = await Case.findById(id)
+        .populate("counsellor")
+        .populate("user");
       let updated_refer = [];
       if (fetchCase.referer === null) {
         updated_refer.push(refer);
       } else {
-        updated_refer = [...fetchCase.referer, refer];
+        updated_refer = [...fetchCase.referer.map((ref) => ref), refer];
       }
-      await Case.referer(id, {
-        referer: updated_refer,
-        concern_raised,
-      });
-      await Session.add_details(session_id, { details, interactions });
+      await Case.findByIdAndUpdate(
+        id,
+        {
+          referer: updated_refer,
+          concern_raised,
+        },
+        { new: true }
+      );
+      await Session.findByIdAndUpdate(
+        session_id,
+        { details, interactions },
+        { new: true }
+      );
       const mailData = {
         to: counsellor.email,
         subject: `Feedback requested for Session ID: ${checkSession.session_id} and Case ID: ${checkSession.case_id}`,
         text: `Dear ${counsellor.name},
       
       A session request has been made by ${
-        checkSession.user_name
+        checkSession.user.name
       } with the following details:
       
       - **Session ID**: ${checkSession.session_id}
@@ -423,16 +478,27 @@ exports.addEntry = async (req, res) => {
       await sendMail(mailData);
       const notifData = {
         user: refer,
-        caseId: checkSession.caseid,
-        session: checkSession.id,
+        caseId: checkSession.case_id,
+        session: checkSession._id,
         details: "Session feedback requested",
       };
       await Notification.create(notifData);
 
       return responseHandler(res, 200, "Case refered successfully");
     }
-    await Session.close(session_id, { case_details: details, interactions });
+    await Session.findByIdAndUpdate(
+      session_id,
+      { case_details: details, interactions, status: "completed" },
+      { new: true }
+    );
     //? Default case: create a new session
+    const fetchCase = await Case.findById(id);
+
+    if (!fetchCase) return responseHandler(res, 404, "Case not found");
+
+    const sc_id = `${fetchCase.case_id}/SC_${String(
+      fetchCase.session_ids.length + 1
+    ).padStart(2, "0")}`;
     const sessionData = {
       user: user_id,
       session_date: date,
@@ -441,30 +507,34 @@ exports.addEntry = async (req, res) => {
       description: checkSession.description,
       counsellor: req.userId,
       status: "progress",
+      session_id: sc_id,
     };
 
     const newSessionRes = await Session.create(sessionData);
     if (!newSessionRes)
       return responseHandler(res, 400, "Session creation failed");
 
-    const fetchCase = await Case.findById(id);
-    if (!fetchCase) return responseHandler(res, 404, "Case not found");
+    const upCase = await Case.findByIdAndUpdate(
+      id,
+      {
+        session_ids: [
+          ...fetchCase.session_ids.map((session) => session),
+          newSessionRes.id,
+        ],
+        concern_raised: concern_raised,
+      },
+      { new: true }
+    );
 
-    const upCase = await Case.update(id, {
-      sessions: [
-        ...fetchCase.sessions.map((session) => session),
-        newSessionRes.id,
-      ],
-      concern_raised: concern_raised,
-    });
-
-    const resSession = await Session.findById(newSessionRes.id);
+    const resSession = await Session.findById(newSessionRes._id)
+      .populate("user")
+      .populate("counsellor");
 
     const emailData = {
       to: newSessionRes.user_email,
-      subject: `Your session requested with Session ID: ${resSession.session_id} and Case ID: ${upCase.case_id} for ${newSessionRes.counsellor_name}`,
-      text: `Dear ${newSessionRes.user_name},\n\nYour appointment request for ${
-        newSessionRes.counsellor_name
+      subject: `Your session requested with Session ID: ${resSession.session_id} and Case ID: ${upCase.case_id} for ${resSession.counsellor.name}`,
+      text: `Dear ${newSessionRes.user.name},\n\nYour appointment request for ${
+        newSessionRes.counsellor.name
       } for ${moment(newSessionRes.session_date).format("DD-MM-YYYY")} at ${
         newSessionRes.session_time.start
       }-${
@@ -475,29 +545,29 @@ exports.addEntry = async (req, res) => {
     await sendMail(emailData);
     const notifData = {
       user: req.userId,
-      caseId: upCase.id,
-      session: resSession.id,
+      caseId: upCase._id,
+      session: resSession._id,
       details: "Your session has been requested. Please wait for approval",
     };
     await Notification.create(notifData);
     const notif_data = {
-      user: newSessionRes.counsellor,
-      caseId: upCase.id,
-      session: resSession.id,
+      user: resSession.counsellor._id,
+      caseId: upCase._id,
+      session: resSession._id,
       details: "New session requested",
     };
 
     const counData = {
-      to: newSessionRes.counsellor_email,
-      subject: `You have a new session requested with Session ID: ${resSession.session_id} and Case ID: ${upCase.case_id} from ${newSessionRes.user_name}`,
+      to: resSession.counsellor.email,
+      subject: `You have a new session requested with Session ID: ${resSession.session_id} and Case ID: ${upCase.case_id} from ${resSession.user.name}`,
       text: `Dear ${
-        newSessionRes.counsellor_name
+        resSession.counsellor.name
       },\n\nYou have received an appointment request from ${
-        newSessionRes.user_name
-      } for ${moment(newSessionRes.session_date).format("DD-MM-YYYY")} at ${
-        newSessionRes.session_time.start
+        resSession.user.name
+      } for ${moment(resSession.session_date).format("DD-MM-YYYY")} at ${
+        resSession.session_time.start
       }-${
-        newSessionRes.session_time.end
+        resSession.session_time.end
       }. The request has been sent to you for approval. We will notify you via email once the request has been approved.`,
     };
 

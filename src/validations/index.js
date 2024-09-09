@@ -92,14 +92,7 @@ exports.editEventSchema = Joi.object({
 
 exports.createSessionSchema = Joi.object({
   session_date: Joi.date().required(),
-  session_time: Joi.object({
-    start: Joi.string()
-      .regex(/^([0-9]{2}):([0-9]{2})$/)
-      .required(),
-    end: Joi.string()
-      .regex(/^([0-9]{2}):([0-9]{2})$/)
-      .required(),
-  }).required(),
+  session_time: Joi.object().required(),
   type: Joi.string().required(),
   counsellor: Joi.string().required(),
   description: Joi.string(),
