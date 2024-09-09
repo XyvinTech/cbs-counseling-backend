@@ -102,7 +102,6 @@
  *                 example: "career"
  *               counsellor:
  *                 type: string
- *                 format: uuid
  *                 example: "123e4567-e89b-12d3-a456-426614174000"
  *               description:
  *                 type: string
@@ -169,7 +168,6 @@
  *         required: true
  *         schema:
  *           type: string
- *           format: uuid
  *         description: ID of the session to reschedule
  *     requestBody:
  *       required: true
@@ -211,7 +209,6 @@
  *         required: true
  *         schema:
  *           type: string
- *           format: uuid
  *         description: ID of the counsellor
  *       - name: day
  *         in: query
@@ -273,7 +270,6 @@
  *         required: true
  *         schema:
  *           type: string
- *           format: uuid
  *         description: The ID of the case to retrieve sessions for
  *     responses:
  *       200:
@@ -298,7 +294,6 @@
  *         required: true
  *         schema:
  *           type: string
- *           format: uuid
  *         description: The ID of the session to retrieve
  *     responses:
  *       200:
@@ -323,7 +318,6 @@
  *         required: true
  *         schema:
  *           type: string
- *           format: uuid
  *         description: The ID of the session to cancel
  *     responses:
  *       200:
@@ -348,7 +342,6 @@
  *         required: true
  *         schema:
  *           type: string
- *           format: uuid
  *         description: ID of the counsellor
  *     responses:
  *       200:
@@ -444,7 +437,6 @@
  *         required: true
  *         schema:
  *           type: string
- *           format: uuid
  *         description: ID of the notification to be marked as read
  *     responses:
  *       200:

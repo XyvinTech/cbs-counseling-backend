@@ -723,8 +723,11 @@ exports.getAvailableTimes = async (req, res) => {
   try {
     const { id } = req.params;
     const { day, date } = req.query;
-    const session = await Session.findByCounsellerDate(id, date);
-    const times = await Time.findTimes({ userId: id, day });
+    const session = await Session.find({
+      counsellor: id,
+      session_date: date,
+    });
+    const times = await Time.findOne({ user: id, day });
     const availableTimes = times.times.filter(
       (time) => !session.some((sess) => sess.session_time == time)
     );
