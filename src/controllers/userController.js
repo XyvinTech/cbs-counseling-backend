@@ -117,7 +117,7 @@ exports.createSession = async (req, res) => {
     const sessions = [session._id];
 
     const count = await Case.countDocuments();
-    const case_id = `#CS_${String(count).padStart(2, "0")}`;
+    const case_id = `#CS_${String(count + 1).padStart(2, "0")}`;
 
     const newSession = await Session.findById(session._id)
       .populate("user")
@@ -130,9 +130,11 @@ exports.createSession = async (req, res) => {
     });
 
     newSession.case_id = caseId._id;
-    newSession.session_id = `${case_id}/SC_${String(count + 1).padStart(2, "0")}`;
+    newSession.session_id = `${case_id}/SC_${String(count + 1).padStart(
+      2,
+      "0"
+    )}`;
     await newSession.save();
-
 
     session.case_id = caseId._id;
     const emailData = {
