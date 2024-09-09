@@ -1,0 +1,32 @@
+{
+  "name": "councelling_backend",
+  "version": "1.0.0",
+  "description": "The School Counseling Backend is a Node.js application designed to facilitate the management of student counseling services within a school or educational institution. It provides a robust backend infrastructure for handling various aspects of counseling.",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "NODE_ENV=production nodemon app.js",
+    "dev": "NODE_ENV=development nodemon app.js"
+  },
+  "author": "hello-world-ttj",
+  "license": "ISC",
+  "dependencies": {
+    "aws-sdk": "^2.1659.0",
+    "bcrypt": "^5.1.1",
+    "cli-color": "^2.0.4",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "joi": "^17.13.3",
+    "jsonwebtoken": "^9.0.2",
+    "moment-timezone": "^0.5.45",
+    "mongoose": "^8.4.3",
+    "nodemailer": "^6.9.14",
+    "nodemon": "^3.1.4",
+    "pdfkit": "^0.15.0",
+    "postgres": "^3.4.4",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1",
+    "volleyball": "^1.5.1"
+  }
+}
