@@ -124,7 +124,7 @@ exports.editAdmin = async (req, res) => {
       );
     }
 
-    const updateAdmin = await Admin.update(id, req.body, {
+    const updateAdmin = await Admin.findByIdAndUpdate(id, req.body, {
       new: true,
     });
     if (updateAdmin) {

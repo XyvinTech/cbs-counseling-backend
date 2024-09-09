@@ -73,33 +73,51 @@ exports.addTimes = async (req, res) => {
       );
     }
     req.body.user = req.userId;
-    const isAdded = await Time.findTimes({
-      userId: req.userId,
+
+    const isAdded = await Time.findOne({
+      user: req.userId, 
       day: req.body.day,
     });
-    if (isAdded && req.body.times == []) {
-      await Time.delete(isAdded.id);
+    
+   
+    if (isAdded && req.body.times.length === 0) {
+      await Time.findByIdAndDelete(isAdded.id);
+      return responseHandler(res, 200, "Time deleted successfully");
     }
     if (isAdded) {
-      const id = isAdded.id;
-      const updateTime = await Time.update(id, {
-        day: req.body.day,
-        times: req.body.times,
-      });
-      if (!updateTime) return responseHandler(res, 400, `Time creation failed`);
+      const updateTime = await Time.findByIdAndUpdate(
+        isAdded.id,
+        {
+          day: req.body.day,
+          times: req.body.times,
+        },
+        { new: true } 
+      );
+      
+      if (!updateTime) {
+        return responseHandler(res, 400, "Time creation failed");
+      }
+
       return responseHandler(res, 201, "Time created successfully", updateTime);
     }
+
     const times = await Time.create(req.body);
-    if (!times) return responseHandler(res, 400, `Time creation failed`);
+    if (!times) {
+      return responseHandler(res, 400, "Time creation failed");
+    }
+    
     return responseHandler(res, 201, "Time created successfully", times);
+    
   } catch (error) {
-    return responseHandler(res, 500, `Internal Server Error ${error.message}`);
+    return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
   }
 };
 
+
+
 exports.getTimes = async (req, res) => {
   try {
-    const times = await Time.findByUserId(req.userId);
+    const times = await Time.find({ user: req.userId });
     if (!times) return responseHandler(res, 404, "No times found");
     return responseHandler(res, 200, "Times found", times);
   } catch (error) {
@@ -588,7 +606,7 @@ exports.addEntry = async (req, res) => {
 exports.getAllCounsellors = async (req, res) => {
   try {
     const { counsellorType } = req.query;
-    const counsellors = await User.findAllCounsellors({ counsellorType });
+    const counsellors = await User.find({ counsellorType });
     const mappedData = counsellors.map((counsellor) => {
       return {
         id: counsellor.id,
@@ -720,11 +738,18 @@ exports.getAvailableTimes = async (req, res) => {
 exports.deleteTime = async (req, res) => {
   try {
     const { id } = req.params;
-    if (req.body.times == []) {
-      await Time.delete(id);
+
+    if (Array.isArray(req.body.times) && req.body.times.length === 0) {
+      await Time.findByIdAndDelete(id);
+      return responseHandler(res, 200, "Time deleted successfully");
     }
-    const deleteTime = await Time.deleteTime(id, req.body.times);
-    return responseHandler(res, 200, "Time deleted successfully", deleteTime);
+    const updatedTime = await Time.findByIdAndUpdate(
+      id,
+      { $set: { times: req.body.times } },
+      { new: true }
+    );
+
+    return responseHandler(res, 200, "Time updated successfully", updatedTime);
   } catch (error) {
     return responseHandler(res, 500, `Internal Server Error ${error.message}`);
   }
