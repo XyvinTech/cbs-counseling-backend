@@ -31,7 +31,7 @@ exports.loginCounsellor = async (req, res) => {
       return responseHandler(res, 401, "Invalid password");
     }
 
-    const token = generateToken(findUser.id);
+    const token = generateToken(findUser._id);
 
     return responseHandler(res, 200, "Login successfull", token);
   } catch (error) {
@@ -75,11 +75,10 @@ exports.addTimes = async (req, res) => {
     req.body.user = req.userId;
 
     const isAdded = await Time.findOne({
-      user: req.userId, 
+      user: req.userId,
       day: req.body.day,
     });
-    
-   
+
     if (isAdded && req.body.times.length === 0) {
       await Time.findByIdAndDelete(isAdded.id);
       return responseHandler(res, 200, "Time deleted successfully");
@@ -91,9 +90,9 @@ exports.addTimes = async (req, res) => {
           day: req.body.day,
           times: req.body.times,
         },
-        { new: true } 
+        { new: true }
       );
-      
+
       if (!updateTime) {
         return responseHandler(res, 400, "Time creation failed");
       }
@@ -105,15 +104,12 @@ exports.addTimes = async (req, res) => {
     if (!times) {
       return responseHandler(res, 400, "Time creation failed");
     }
-    
+
     return responseHandler(res, 201, "Time created successfully", times);
-    
   } catch (error) {
     return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
   }
 };
-
-
 
 exports.getTimes = async (req, res) => {
   try {
@@ -127,15 +123,29 @@ exports.getTimes = async (req, res) => {
 
 exports.listController = async (req, res) => {
   try {
-    const { type, page, searchQuery, status } = req.query;
+    const { type, page, searchQuery, status, limit = 10 } = req.query;
+    const skipCount = 10 * (page - 1);
     const { userId } = req;
     if (type === "sessions") {
-      const sessions = await Session.findAllByCounsellorId({
-        userId,
-        page,
-        searchQuery,
-        status,
-      });
+      const filter = {
+        counsellor: userId,
+      };
+      if (status) {
+        filter.status = status;
+      }
+      if (searchQuery) {
+        filter.$or = [
+          { "user.name": { $regex: searchQuery, $options: "i" } },
+          { "counsellor.name": { $regex: searchQuery, $options: "i" } },
+        ];
+      }
+      const sessions = await Session.find(filter)
+        .populate("user")
+        .populate("counsellor")
+        .skip(skipCount)
+        .limit(limit)
+        .sort({ createdAt: -1 })
+        .lean();
       if (sessions.length > 0) {
         const totalCount = await Session.counsellor_count({
           id: userId,
@@ -146,12 +156,16 @@ exports.listController = async (req, res) => {
       return responseHandler(res, 404, "No reports found");
     }
     if (type === "cases") {
-      const cases = await Case.findAll({
-        userId,
-        page,
-        searchQuery,
-        status,
-      });
+      const filter = {
+        "session_ids.counsellor": userId,
+      };
+      if (status) {
+        filter.status = status;
+      }
+      if (searchQuery) {
+        filter.$or = [{ "user.name": { $regex: searchQuery, $options: "i" } }];
+      }
+      const cases = await Case.find(filter).populate("session_ids");
       if (cases.length > 0) {
         const mappedData = cases.map((item) => {
           return {
@@ -170,17 +184,21 @@ exports.listController = async (req, res) => {
       }
       return responseHandler(res, 404, "No cases found");
     } else if (type === "events") {
-      const event = await Event.findAll({
-        page,
-        searchQuery,
-      });
+      const filter = {};
+      if (searchQuery) {
+        filter.$or = [
+          { title: { $regex: searchQuery, $options: "i" } },
+          { venue: { $regex: searchQuery, $options: "i" } },
+        ];
+      }
+      const event = await Event.find(filter);
       if (event.length > 0) {
-        const totalCount = await Event.count();
+        const totalCount = await Event.countDocuments(filter);
         return responseHandler(res, 200, "Events found", event, totalCount);
       }
       return responseHandler(res, 404, "No Events found");
     } else if (type === "counselling-type") {
-      const types = await Type.findAll();
+      const types = await Type.find();
       if (types.length > 0) {
         const totalCount = types.length;
         return responseHandler(
@@ -193,16 +211,18 @@ exports.listController = async (req, res) => {
       }
       return responseHandler(res, 404, "No Counselling types found");
     } else if (type === "remarks") {
-      const sessions = await Case.findAllRemarks({
-        userId,
-        page,
-        searchQuery,
-        status,
-      });
+      const filter = {
+        referer: userId,
+      };
+      if (status) {
+        filter.status = status;
+      }
+      if (searchQuery) {
+        filter.$or = [{ "user.name": { $regex: searchQuery, $options: "i" } }];
+      }
+      const sessions = await Case.find(filter);
       if (sessions.length > 0) {
-        const totalCount = await Case.remarkCount({
-          userId,
-        });
+        const totalCount = await Case.countDocuments(filter);
         return responseHandler(res, 200, "Reports found", sessions, totalCount);
       }
       return responseHandler(res, 404, "No reports found");
@@ -606,7 +626,7 @@ exports.addEntry = async (req, res) => {
 exports.getAllCounsellors = async (req, res) => {
   try {
     const { counsellorType } = req.query;
-    const counsellors = await User.find({ counsellorType });
+    const counsellors = await User.find({ counsellorType: counsellorType });
     const mappedData = counsellors.map((counsellor) => {
       return {
         id: counsellor.id,
@@ -627,7 +647,7 @@ exports.getAllCounsellors = async (req, res) => {
 exports.getCaseSessions = async (req, res) => {
   try {
     const { caseId } = req.params;
-    const sessions = await Session.findAllByCaseId(caseId);
+    const sessions = await Session.find({ case_id: caseId });
     if (sessions.length > 0) {
       return responseHandler(res, 200, "Sessions found", sessions);
     }
@@ -656,7 +676,10 @@ exports.rescheduleSession = async (req, res) => {
     const { id } = req.params;
     if (!session_date && !session_time)
       return responseHandler(res, 400, `Session date & time is required`);
-    const session = await Session.findById(id);
+    const session = await Session.findById(id)
+      .populate("user")
+      .populate("case_id")
+      .populate("counsellor");
     if (!session) return responseHandler(res, 404, "Session not found");
     if (session.status !== "pending" && session.status !== "rescheduled")
       return responseHandler(res, 400, "You can't reschedule this session");
@@ -664,31 +687,38 @@ exports.rescheduleSession = async (req, res) => {
       session_date,
       session_time,
       c_reschedule_remark,
+      status: "progress",
     };
-    const rescheduleSession = await Session.c_reschedule(id, updatedSession);
+    const rescheduleSession = await Session.findByIdAndUpdate(
+      id,
+      updatedSession,
+      {
+        new: true,
+      }
+    );
     if (!rescheduleSession)
       return responseHandler(res, 400, "Session reschedule failed");
     const data = {
       user: req.userId,
-      caseId: session.caseid,
-      session: session.id,
+      caseId: session.case_id._id,
+      session: session._id,
       details: "Your session is rescheduled.",
     };
     await Notification.create(data);
     const notif_data = {
       user: session.user,
-      caseId: session.caseid,
-      session: session.id,
+      caseId: session.case_id._id,
+      session: session._id,
       details: "Session rescheduled.",
     };
 
     const emailData = {
-      to: session.user_email,
-      subject: `Your session with Session ID: ${session.session_id} and Case ID: ${session.case_id} has been rescheduled by ${session.counsellor_name}`,
+      to: session.user.email,
+      subject: `Your session with Session ID: ${session.session_id} and Case ID: ${session.case_id.case_id} has been rescheduled by ${session.counsellor.name}`,
       text: `Dear ${
-        session.user_name
+        session.user.name
       },\n\nWe wanted to inform you that your appointment with ${
-        session.counsellor_name
+        session.counsellor.name
       }, originally scheduled for ${moment(session.session_date).format(
         "DD-MM-YYYY"
       )} at ${session.session_time.start}-${
@@ -703,7 +733,7 @@ exports.rescheduleSession = async (req, res) => {
     await sendMail(emailData);
     await Notification.create(notif_data);
     const counData = {
-      to: session.counsellor_email,
+      to: session.counsellor.email,
       subject: "Session Reschedule",
       text: `Session rescheduled for Session ID: ${session.session_id}.`,
     };
@@ -723,8 +753,17 @@ exports.getAvailableTimes = async (req, res) => {
   try {
     const { id } = req.params;
     const { day, date } = req.query;
-    const session = await Session.findByCounsellerDate(id, date);
-    const times = await Time.findTimes({ userId: id, day });
+    const currentDate = new Date(date);
+    const previousDate = new Date(currentDate);
+    previousDate.setDate(currentDate.getDate() - 1);
+    const nextDate = new Date(currentDate);
+    nextDate.setDate(currentDate.getDate() + 1);
+    const filter = {
+      _id: id,
+      session_date: { $gte: previousDate, $lte: nextDate },
+    };
+    const session = await Session.find(filter);
+    const times = await Time.find({ user: id, day });
     const availableTimes = times.times.filter(
       (time) => !session.some((sess) => sess.session_time == time)
     );
@@ -759,16 +798,29 @@ exports.cancelSession = async (req, res) => {
   try {
     const { id } = req.params;
     const { c_cancel_remark } = req.body;
-    const session = await Session.c_cancel(id, { c_cancel_remark });
-    await Case.cancel(session.case_id);
-    const get_session = await Session.findById(id);
+    const session = await Session.findByIdAndUpdate(
+      id,
+      { c_cancel_remark, status: "cancelled" },
+      { new: true }
+    );
+    await Case.findByIdAndUpdate(
+      session.case_id,
+      {
+        status: "cancelled",
+      },
+      { new: true }
+    );
+    const get_session = await Session.findById(id)
+      .populate("case_id")
+      .populate("counsellor")
+      .populate("user");
     const emailData = {
       to: session.user_email,
-      subject: `Your session with Session ID: ${get_session.session_id} and Case ID: ${get_session.case_id} has been canceled by ${get_session.counsellor_name}`,
+      subject: `Your session with Session ID: ${get_session.session_id} and Case ID: ${get_session.case_id.case_id} has been canceled by ${get_session.counsellor.name}`,
       text: `Dear ${
-        get_session.user_name
+        get_session.user.name
       },\n\nWe regret to inform you that your appointment with ${
-        get_session.counsellor_name
+        get_session.counsellor.name
       }, originally scheduled for ${moment(get_session.session_date).format(
         "DD-MM-YYYY"
       )} at ${get_session.session_time.start}-${
@@ -808,7 +860,14 @@ exports.getSessionsExcel = async (req, res) => {
   try {
     const { student, status } = req.query;
     const { userId } = req;
-    const sessions = await Session.findForExcel({ userId, status, student });
+    const filter = {
+      user: userId,
+    };
+
+    const sessions = await Session.find()
+      .populate("case_id")
+      .populate("user")
+      .populate("counsellor");
     const headers = [
       "Case ID",
       "Session ID",
@@ -819,9 +878,9 @@ exports.getSessionsExcel = async (req, res) => {
     ];
     const data = sessions.map((session) => {
       return {
-        case_id: session.caseid,
+        case_id: session.case_id.case_id,
         session_id: session.session_id,
-        student_name: session.user_name,
+        student_name: session.user.name,
         session_date: moment(session.session_date).format("DD-MM-YYYY"),
         session_time: session.session_time,
         status: session.status,
@@ -838,7 +897,7 @@ exports.getSessionsExcel = async (req, res) => {
 
 exports.getBigCalender = async (req, res) => {
   try {
-    const events = await Event.findAllForCalender();
+    const events = await Event.find().select("title date");
     if (events.length > 0) {
       const mappedData = events.map((event) => {
         return {
@@ -880,7 +939,9 @@ exports.updateCounsellor = async (req, res) => {
       );
     }
 
-    const updateCounsellor = await User.update(id, req.body);
+    const updateCounsellor = await User.findByIdAndUpdate(id, req.body, {
+      new: true,
+    });
     if (updateCounsellor) {
       return responseHandler(
         res,
@@ -899,7 +960,7 @@ exports.updateCounsellor = async (req, res) => {
 exports.getNotifications = async (req, res) => {
   try {
     const { userId } = req;
-    const notifications = await Notification.findByUserId(userId);
+    const notifications = await Notification.find({ user: userId });
     if (!notifications)
       return responseHandler(res, 400, `No Notification found`);
     return responseHandler(res, 200, `Notification Found`, notifications);
@@ -911,7 +972,13 @@ exports.getNotifications = async (req, res) => {
 exports.markAsRead = async (req, res) => {
   try {
     const { id } = req.params;
-    const notification = await Notification.markAsRead(id);
+    const notification = await Notification.findByIdAndUpdate(
+      id,
+      {
+        isRead: true,
+      },
+      { new: true }
+    );
     if (!notification)
       return responseHandler(res, 404, "Notification not found");
     return responseHandler(res, 200, "Notification marked as read");
@@ -973,7 +1040,9 @@ exports.editEvent = async (req, res) => {
       return responseHandler(res, 404, "Event not found");
     }
 
-    const updateEvent = await Event.update(id, req.body);
+    const updateEvent = await Event.findByIdAndUpdate(id, req.body, {
+      new: true,
+    });
     if (updateEvent) {
       return responseHandler(
         res,
@@ -1001,7 +1070,7 @@ exports.deleteEvent = async (req, res) => {
       return responseHandler(res, 404, "Event not found");
     }
 
-    const deleteEvent = await Event.delete(id);
+    const deleteEvent = await Event.findByIdAndDelete(id);
     if (deleteEvent) {
       return responseHandler(res, 200, `Event deleted successfully..!`);
     } else {
@@ -1024,7 +1093,7 @@ exports.deleteManyCounsellingType = async (req, res) => {
     }
     const deletionResults = await Promise.all(
       ids.map(async (id) => {
-        return await Type.delete(id);
+        return await Type.findByIdAndDelete(id);
       })
     );
 
@@ -1064,7 +1133,11 @@ exports.refereeRemark = async (req, res) => {
     } else {
       updatedRemarks = [...remarks, referee_remark];
     }
-    const updateRemark = await Case.remark(id, { remark: updatedRemarks });
+    const updateRemark = await Case.findByIdAndUpdate(
+      id,
+      { remark: updatedRemarks },
+      { new: true }
+    );
     if (!updateRemark) return responseHandler(res, 400, "Remark update failed");
     return responseHandler(
       res,
