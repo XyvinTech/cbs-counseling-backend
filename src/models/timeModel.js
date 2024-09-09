@@ -23,13 +23,13 @@ const timeSchema = new mongoose.Schema(
     day: {
       type: String,
       enum: [
-        "monday",
-        "tuesday",
-        "wednesday",
-        "thursday",
-        "friday",
-        "saturday",
-        "sunday",
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+        "Sunday",
       ],
     },
     times: {
