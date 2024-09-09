@@ -610,23 +610,34 @@ exports.getUserSessions = async (req, res) => {
   try {
     const { userId } = req.params;
     const { page, searchQuery } = req.query;
-    const sessions = await Session.findAllByUserId({
-      userId,
-      page,
-      searchQuery,
-    });
+    const filter = {
+      user: userId,
+    };
+    if (searchQuery) {
+      filter.$or = [
+        { "user.name": { $regex: searchQuery, $options: "i" } },
+        { "counsellor.name": { $regex: searchQuery, $options: "i" } },
+      ];
+    }
+    const sessions = await Session.find(filter)
+      .populate("user")
+      .populate("counsellor")
+      .skip(skipCount)
+      .limit(limit)
+      .sort({ createdAt: -1 })
+      .lean();
     const mappedData = sessions.map((session) => {
       return {
         id: session.id,
         session_date: session.session_date,
         session_time: session.session_time,
         name: session.name,
-        counsellor_name: session.counsellor_name,
+        counsellor_name: session.counsellor.name,
         counsellor_type: session.type,
       };
     });
     if (sessions.length > 0) {
-      const totalCount = await Session.count({ id: userId });
+      const totalCount = await Session.countDocuments(filter);
       return responseHandler(
         res,
         200,
@@ -661,24 +672,35 @@ exports.getCounsellorSessions = async (req, res) => {
   try {
     const userId = req.params.counsellorId;
     const { page, searchQuery } = req.query;
-    const sessions = await Session.findAllByCounsellorId({
-      userId,
-      page,
-      searchQuery,
-    });
+    const filter = {
+      counsellor: userId,
+    };
+    if (searchQuery) {
+      filter.$or = [
+        { "user.name": { $regex: searchQuery, $options: "i" } },
+        { "counsellor.name": { $regex: searchQuery, $options: "i" } },
+      ];
+    }
+    const sessions = await Session.find(filter)
+      .populate("user")
+      .populate("counsellor")
+      .skip(skipCount)
+      .limit(limit)
+      .sort({ createdAt: -1 })
+      .lean();
     const mappedData = sessions.map((session) => {
       return {
         id: session.id,
         session_id: session.session_id,
         session_date: session.session_date,
         session_time: session.session_time,
-        student_name: session.user_name,
+        student_name: session.user.name,
         counsellor_type: session.type,
         status: session.status,
       };
     });
     if (sessions.length > 0) {
-      const totalCount = await Session.counsellor_count({ id: userId });
+      const totalCount = await Session.countDocuments(filter);
       return responseHandler(
         res,
         200,
