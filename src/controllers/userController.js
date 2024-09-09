@@ -119,30 +119,31 @@ exports.createSession = async (req, res) => {
     const count = await Case.countDocuments();
     const case_id = `#CS_${String(count).padStart(2, "0")}`;
 
-    const caseId = await Case.create({
-      user: req.userId,
-      sessions,
-      case_id,
-    });
-
-    sessions.case_id = caseId._id;
-    sessions.session_id = `${case_id}/SC_${String(count + 1).padStart(2, "0")}`;
-    await sessions.save();
-
     const newSession = await Session.findById(session._id)
       .populate("user")
       .populate("counsellor");
 
+    const caseId = await Case.create({
+      user: req.userId,
+      session_ids: sessions,
+      case_id: case_id,
+    });
+
+    newSession.case_id = caseId._id;
+    newSession.session_id = `${case_id}/SC_${String(count + 1).padStart(2, "0")}`;
+    await newSession.save();
+
+
     session.case_id = caseId._id;
     const emailData = {
-      to: session.user_email,
-      subject: `Your session requested with Session ID: ${newSession.session_id} and Case ID: ${caseId.case_id} for ${session.counsellor.name}`,
-      text: `Dear ${session.user.name},\n\nYour appointment request for ${
-        session.counsellor.name
-      } for ${moment(session.session_date).format("DD-MM-YYYY")} at ${
-        session.session_time.start
+      to: newSession.user.email,
+      subject: `Your session requested with Session ID: ${newSession.session_id} and Case ID: ${case_id} for ${newSession.counsellor.name}`,
+      text: `Dear ${newSession.user.name},\n\nYour appointment request for ${
+        newSession.counsellor.name
+      } for ${moment(newSession.session_date).format("DD-MM-YYYY")} at ${
+        newSession.session_time.start
       }-${
-        session.session_time.end
+        newSession.session_time.end
       } has been sent to the Counselor for approval. We will inform you through an email once your request has been approved by the Counselor.`,
     };
     await sendMail(emailData);
@@ -160,16 +161,16 @@ exports.createSession = async (req, res) => {
       details: "New session requested",
     };
     const counData = {
-      to: session.counsellor.email,
-      subject: `You have a new session requested with Session ID: ${newSession.session_id} and Case ID: ${caseId.case_id} from ${session.user.name}`,
+      to: newSession.counsellor.email,
+      subject: `You have a new session requested with Session ID: ${newSession.session_id} and Case ID: ${case_id} from ${newSession.user.name}`,
       text: `Dear ${
-        session.counsellor.name
+        newSession.counsellor.name
       },\n\nYou have received an appointment request from ${
-        session.user.name
-      } for ${moment(session.session_date).format("DD-MM-YYYY")} at ${
-        session.session_time.start
+        newSession.user.name
+      } for ${moment(newSession.session_date).format("DD-MM-YYYY")} at ${
+        newSession.session_time.start
       }-${
-        session.session_time.end
+        newSession.session_time.end
       }. The request has been sent to you for approval. We will notify you via email once the request has been approved.`,
     };
     await sendMail(counData);
