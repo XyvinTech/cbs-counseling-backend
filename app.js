@@ -44,8 +44,7 @@ app.get(BASE_PATH, (req, res) => {
   return responseHandler(
     res,
     200,
-    "🛡️ Welcome! All endpoints are fortified. Do you possess the master 🗝️?",
-    null
+    "🛡️ Welcome! All endpoints are fortified. Do you possess the master 🗝️?"
   );
 });
 
