@@ -719,23 +719,25 @@ exports.getCounsellorCases = async (req, res) => {
   try {
     const userId = req.params.counsellorId;
     const { page, searchQuery } = req.query;
-    const cases = await Case.findAllByCounsellorId({
-      userId,
-      page,
-      searchQuery,
-    });
+    const filter = {
+      "session_ids.counsellor": userId,
+    };
+    if (searchQuery) {
+      filter.$or = [{ "user.name": { $regex: searchQuery, $options: "i" } }];
+    }
+    const cases = await Case.find(filter).populate("user");
     const mappedData = cases.map((case_) => {
       return {
         id: case_.id,
         case_id: case_.case_id,
         case_date: case_.createdAt,
         case_time: case_.createdAt,
-        student_name: case_.user_name,
+        student_name: case_.user.name,
         status: case_.status,
       };
     });
     if (cases.length > 0) {
-      const totalCount = await Case.counsellor_count({ id: userId });
+      const totalCount = await Case.countDocuments(filter);
       return responseHandler(res, 200, "Cases found", mappedData, totalCount);
     }
     return responseHandler(res, 404, "No Cases found", mappedData);
@@ -747,7 +749,9 @@ exports.getCounsellorCases = async (req, res) => {
 exports.getAllCounsellors = async (req, res) => {
   try {
     const { counsellorType } = req.query;
-    const counsellors = await User.findAllCounsellors({ counsellorType });
+    const counsellors = await User.find({
+      counsellorType: { $in: [counsellorType] },
+    });
     const mappedData = counsellors.map((counsellor) => {
       return {
         id: counsellor.id,
@@ -768,18 +772,31 @@ exports.getAllCounsellors = async (req, res) => {
 exports.getDashboard = async (req, res) => {
   try {
     const { page, limit, searchQuery, status } = req.query;
-    const student_count = await User.count({ userType: "student" });
-    const counsellor_count = await User.count({ userType: "counsellor" });
-    const case_count = await Case.count();
-    const session_count = await Session.count({});
-    const event_count = await Event.count();
-    const session_list = await Session.findAll({
-      page,
-      limit,
-      searchQuery,
-      status,
+    const student_count = await User.countDocuments({ userType: "student" });
+    const counsellor_count = await User.countDocuments({
+      userType: "counsellor",
     });
-    const totalCount = await Session.count({ status });
+    const case_count = await Case.countDocuments();
+    const session_count = await Session.countDocuments({});
+    const event_count = await Event.countDocuments();
+    const filter = {};
+    if (searchQuery) {
+      filter.$or = [
+        { "user.name": { $regex: searchQuery, $options: "i" } },
+        { "counsellor.name": { $regex: searchQuery, $options: "i" } },
+      ];
+    }
+    if (status) {
+      filter.status = status;
+    }
+    const session_list = await Session.find(filter)
+      .populate("user")
+      .populate("counsellor")
+      .skip(skipCount)
+      .limit(limit)
+      .sort({ createdAt: -1 })
+      .lean();
+    const totalCount = await Session.countDocuments({ status });
     const dashboard = {
       student_count,
       counsellor_count,
@@ -847,7 +864,9 @@ exports.editEvent = async (req, res) => {
       return responseHandler(res, 404, "Event not found");
     }
 
-    const updateEvent = await Event.update(id, req.body);
+    const updateEvent = await Event.findByIdAndUpdate(id, req.body, {
+      new: true,
+    });
     if (updateEvent) {
       return responseHandler(
         res,
@@ -875,7 +894,7 @@ exports.deleteEvent = async (req, res) => {
       return responseHandler(res, 404, "Event not found");
     }
 
-    const deleteEvent = await Event.delete(id);
+    const deleteEvent = await Event.findByIdAndDelete(id);
     if (deleteEvent) {
       return responseHandler(res, 200, `Event deleted successfully..!`);
     } else {
@@ -889,7 +908,7 @@ exports.deleteEvent = async (req, res) => {
 exports.getCaseSessions = async (req, res) => {
   try {
     const { caseId } = req.params;
-    const sessions = await Session.findAllByCaseId(caseId);
+    const sessions = await Session.find({ case_id: caseId });
     if (sessions.length > 0) {
       return responseHandler(res, 200, "Sessions found", sessions);
     }
@@ -924,7 +943,7 @@ exports.deleteManyEvent = async (req, res) => {
     }
     const deletionResults = await Promise.all(
       ids.map(async (id) => {
-        return await Event.delete(id);
+        return await Event.findByIdAndDelete(id);
       })
     );
 
@@ -950,7 +969,7 @@ exports.deleteManyCounsellingType = async (req, res) => {
     }
     const deletionResults = await Promise.all(
       ids.map(async (id) => {
-        return await Type.delete(id);
+        return await Type.findByIdAndDelete(id);
       })
     );
 
@@ -1006,7 +1025,7 @@ exports.updateCounsellingType = async (req, res) => {
       return responseHandler(res, 400, "Counselling type name is required");
     }
 
-    const type = await Type.update(id, { name });
+    const type = await Type.findByIdAndUpdate(id, { name }, { new: true });
     if (type) {
       return responseHandler(
         res,
@@ -1028,7 +1047,7 @@ exports.deleteCounsellingType = async (req, res) => {
     if (!id) {
       return responseHandler(res, 400, "Counselling type ID is required");
     }
-    const type = await Type.delete(id);
+    const type = await Type.findByIdAndDelete(id);
     if (type) {
       return responseHandler(res, 200, "Counselling type deleted successfully");
     }
@@ -1039,7 +1058,7 @@ exports.deleteCounsellingType = async (req, res) => {
 
 exports.getBigCalender = async (req, res) => {
   try {
-    const events = await Event.findAllForCalender();
+    const events = await Event.find();
     if (events.length > 0) {
       const mappedData = events.map((event) => {
         return {
