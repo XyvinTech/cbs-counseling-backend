@@ -170,8 +170,11 @@ exports.listController = async (req, res) => {
       return responseHandler(res, 404, "No reports found");
     }
     if (type === "cases") {
+      const sessions = await Session.find({ counsellor: userId });
+      const sessionIds = sessions.map((session) => session._id);
+
       const filter = {
-        "session_ids.counsellor": userId,
+        session_ids: { $in: sessionIds },
       };
       if (status) {
         filter.status = status;
@@ -179,6 +182,7 @@ exports.listController = async (req, res) => {
       if (searchQuery) {
         filter.$or = [{ "user.name": { $regex: searchQuery, $options: "i" } }];
       }
+
       const cases = await Case.find(filter).populate("session_ids");
       if (cases.length > 0) {
         const mappedData = cases.map((item) => {
