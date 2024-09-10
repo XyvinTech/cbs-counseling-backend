@@ -23,7 +23,7 @@ exports.loginAdmin = async (req, res) => {
 
     if (!user) {
       user = await User.findOne({ email });
-      userType = user ? user.usertype : null;
+      userType = user ? user.userType : null;
     }
 
     if (!user) {
@@ -586,7 +586,7 @@ exports.listController = async (req, res) => {
       }
       return responseHandler(res, 404, "No reports found");
     } else if (type === "counselling-type") {
-      const types = await Type.findAll();
+      const types = await Type.find();
       if (types.length > 0) {
         const totalCount = types.length;
         return responseHandler(
