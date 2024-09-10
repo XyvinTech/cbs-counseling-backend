@@ -303,9 +303,17 @@ exports.listController = async (req, res) => {
         .limit(limit)
         .sort({ createdAt: -1 })
         .lean();
+
+      const mappedData = sessions.map((item) => {
+        return {
+          ...item,
+          user_name: item.user.name,
+          counsellor_name: item.counsellor.name,
+        };
+      });
       if (sessions.length > 0) {
         const totalCount = await Session.countDocuments(filter);
-        return responseHandler(res, 200, "Reports found", sessions, totalCount);
+        return responseHandler(res, 200, "Reports found", mappedData, totalCount);
       }
       return responseHandler(res, 404, "No reports found");
     } else if (type === "cases") {
