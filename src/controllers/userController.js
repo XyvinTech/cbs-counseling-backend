@@ -457,9 +457,19 @@ exports.getAllCounsellors = async (req, res) => {
 exports.getCaseSessions = async (req, res) => {
   try {
     const { caseId } = req.params;
-    const sessions = await Session.find({ case_id: caseId });
+    const sessions = await Session.find({ case_id: caseId })
+      .populate("user")
+      .populate("counsellor");
+
+    const mappedData = sessions.map((session) => {
+      return {
+        ...session._doc,
+        user_name: session.user.name,
+        counsellor_name: session.counsellor.name,
+      };
+    })
     if (sessions.length > 0) {
-      return responseHandler(res, 200, "Sessions found", sessions);
+      return responseHandler(res, 200, "Sessions found", mappedData);
     }
     return responseHandler(res, 404, "No sessions found");
   } catch (error) {
@@ -470,12 +480,14 @@ exports.getCaseSessions = async (req, res) => {
 exports.getSession = async (req, res) => {
   try {
     const { id } = req.params;
-    const session = await Session.findById(id).populate("user").populate("counsellor");
+    const session = await Session.findById(id)
+      .populate("user")
+      .populate("counsellor");
     const mappedData = {
       ...session._doc,
       user_name: session.user.name,
       counsellor_name: session.counsellor.name,
-    }
+    };
     if (session) {
       return responseHandler(res, 200, "Session found", mappedData);
     }
