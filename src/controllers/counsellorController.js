@@ -142,13 +142,30 @@ exports.listController = async (req, res) => {
       const sessions = await Session.find(filter)
         .populate("user")
         .populate("counsellor")
+        .populate("case_id")
         .skip(skipCount)
         .limit(limit)
         .sort({ createdAt: -1 })
         .lean();
+
+      const mappedData = sessions.map((item) => {
+        return {
+          ...item,
+          user_name: item.user.name,
+          counsellor_name: item.counsellor.name,
+          case_id: item.case_id.case_id,
+        };
+      });
+
       if (sessions.length > 0) {
         const totalCount = await Session.countDocuments(filter);
-        return responseHandler(res, 200, "Reports found", sessions, totalCount);
+        return responseHandler(
+          res,
+          200,
+          "Reports found",
+          mappedData,
+          totalCount
+        );
       }
       return responseHandler(res, 404, "No reports found");
     }
@@ -473,8 +490,7 @@ exports.addEntry = async (req, res) => {
       return responseHandler(res, 201, "Session created successfully", session);
     } else if (refer) {
       const counsellor = await User.findById(refer);
-      const fetchCase = await Case.findById(id)
-        .populate("user");
+      const fetchCase = await Case.findById(id).populate("user");
       let updated_refer = [];
       if (fetchCase.referer === null) {
         updated_refer.push(refer);
