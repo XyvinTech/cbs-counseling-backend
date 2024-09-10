@@ -474,7 +474,6 @@ exports.addEntry = async (req, res) => {
     } else if (refer) {
       const counsellor = await User.findById(refer);
       const fetchCase = await Case.findById(id)
-        .populate("counsellor")
         .populate("user");
       let updated_refer = [];
       if (fetchCase.referer === null) {
