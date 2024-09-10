@@ -954,7 +954,9 @@ exports.getCaseSessions = async (req, res) => {
 exports.getSession = async (req, res) => {
   try {
     const { id } = req.params;
-    const session = await Session.findById(id);
+    const session = await Session.findById(id)
+      .populate("user")
+      .populate("counsellor");
     if (session) {
       return responseHandler(res, 200, "Session found", session);
     }
