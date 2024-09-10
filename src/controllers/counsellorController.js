@@ -153,7 +153,7 @@ exports.listController = async (req, res) => {
           ...item,
           user_name: item.user.name,
           counsellor_name: item.counsellor.name,
-          case_id: item.case_id.case_id,
+          caseid: item.case_id.case_id,
         };
       });
 
