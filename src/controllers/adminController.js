@@ -515,7 +515,7 @@ exports.listController = async (req, res) => {
       return responseHandler(res, 404, "No Students found");
     } else if (type === "counsellers") {
       const filter = {
-        userType: "student",
+        userType: "counsellers",
       };
       if (searchQuery) {
         filter.$or = [
@@ -575,8 +575,8 @@ exports.listController = async (req, res) => {
       }
       return responseHandler(res, 404, "No reports found");
     } else if (type === "cases") {
+      const filter = {};
       if (searchQuery) {
-        const filter = {};
         filter.$or = [{ "user.name": { $regex: searchQuery, $options: "i" } }];
       }
       const sessions = await Case.find(filter);
