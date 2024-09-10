@@ -132,10 +132,7 @@ exports.createSession = async (req, res) => {
     });
 
     newSession.case_id = caseId._id;
-    newSession.session_id = `${case_id}/SC_${String(count + 1).padStart(
-      2,
-      "0"
-    )}`;
+    newSession.session_id = `${case_id}/SC_${String(1).padStart(2, "0")}`;
     await newSession.save();
 
     session.case_id = caseId._id;
