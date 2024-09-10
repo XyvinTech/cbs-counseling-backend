@@ -467,7 +467,7 @@ exports.getCaseSessions = async (req, res) => {
         user_name: session.user.name,
         counsellor_name: session.counsellor.name,
       };
-    })
+    });
     if (sessions.length > 0) {
       return responseHandler(res, 200, "Sessions found", mappedData);
     }
@@ -482,11 +482,13 @@ exports.getSession = async (req, res) => {
     const { id } = req.params;
     const session = await Session.findById(id)
       .populate("user")
-      .populate("counsellor");
+      .populate("counsellor")
+      .populate("case_id");
     const mappedData = {
       ...session._doc,
       user_name: session.user.name,
       counsellor_name: session.counsellor.name,
+      case_id: session.case_id.case_id,
     };
     if (session) {
       return responseHandler(res, 200, "Session found", mappedData);
