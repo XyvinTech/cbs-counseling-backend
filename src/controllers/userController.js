@@ -470,9 +470,14 @@ exports.getCaseSessions = async (req, res) => {
 exports.getSession = async (req, res) => {
   try {
     const { id } = req.params;
-    const session = await Session.findById(id);
+    const session = await Session.findById(id).populate("user").populate("counsellor");
+    const mappedData = {
+      ...session._doc,
+      user_name: session.user.name,
+      counsellor_name: session.counsellor.name,
+    }
     if (session) {
-      return responseHandler(res, 200, "Session found", session);
+      return responseHandler(res, 200, "Session found", mappedData);
     }
     return responseHandler(res, 404, "Session not found");
   } catch (error) {
