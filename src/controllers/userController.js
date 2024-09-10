@@ -313,7 +313,13 @@ exports.listController = async (req, res) => {
       });
       if (sessions.length > 0) {
         const totalCount = await Session.countDocuments(filter);
-        return responseHandler(res, 200, "Reports found", mappedData, totalCount);
+        return responseHandler(
+          res,
+          200,
+          "Reports found",
+          mappedData,
+          totalCount
+        );
       }
       return responseHandler(res, 404, "No reports found");
     } else if (type === "cases") {
@@ -344,6 +350,7 @@ exports.listController = async (req, res) => {
           ...item,
           user_name: item.user.name,
           counsellor_name: item.session_ids[0].counsellor.name,
+          session_type: item.session_ids[0].type,
         };
       });
 
