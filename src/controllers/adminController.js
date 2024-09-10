@@ -515,7 +515,7 @@ exports.listController = async (req, res) => {
       return responseHandler(res, 404, "No Students found");
     } else if (type === "counsellers") {
       const filter = {
-        userType: "counseller",
+        userType: "counsellor",
       };
       if (searchQuery) {
         filter.$or = [
@@ -581,7 +581,12 @@ exports.listController = async (req, res) => {
       }
       const sessions = await Case.find(filter)
         .populate("user")
-        .populate("session_ids")
+        .populate({
+          path: "session_ids",
+          populate: {
+            path: "counsellor",
+          },
+        })
         .skip(skipCount)
         .limit(limit)
         .sort({ createdAt: -1 })
