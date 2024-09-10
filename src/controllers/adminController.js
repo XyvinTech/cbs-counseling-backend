@@ -515,7 +515,7 @@ exports.listController = async (req, res) => {
       return responseHandler(res, 404, "No Students found");
     } else if (type === "counsellers") {
       const filter = {
-        userType: "counsellers",
+        userType: "counseller",
       };
       if (searchQuery) {
         filter.$or = [
@@ -579,7 +579,13 @@ exports.listController = async (req, res) => {
       if (searchQuery) {
         filter.$or = [{ "user.name": { $regex: searchQuery, $options: "i" } }];
       }
-      const sessions = await Case.find(filter);
+      const sessions = await Case.find(filter)
+        .populate("user")
+        .populate("session_ids.counsellor")
+        .skip(skipCount)
+        .limit(limit)
+        .sort({ createdAt: -1 })
+        .lean();
       if (sessions.length > 0) {
         const totalCount = await Case.countDocuments(filter);
         return responseHandler(res, 200, "Reports found", sessions, totalCount);
