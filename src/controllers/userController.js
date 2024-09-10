@@ -320,13 +320,28 @@ exports.listController = async (req, res) => {
       }
       const cases = await Case.find(filter)
         .populate("user")
+        .populate({
+          path: "session_ids",
+          populate: {
+            path: "counsellor",
+          },
+        })
         .skip(skipCount)
         .limit(limit)
         .sort({ createdAt: -1 })
         .lean();
+
+      const mappedData = cases.map((item) => {
+        return {
+          ...item,
+          user_name: item.user.name,
+          counsellor_name: item.session_ids[0].counsellor.name,
+        };
+      });
+
       if (cases.length > 0) {
         const totalCount = await Case.countDocuments(filter);
-        return responseHandler(res, 200, "Cases found", cases, totalCount);
+        return responseHandler(res, 200, "Cases found", mappedData, totalCount);
       }
       return responseHandler(res, 404, "No reports found");
     } else if (type === "events") {
