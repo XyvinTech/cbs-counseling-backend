@@ -188,13 +188,13 @@ exports.listController = async (req, res) => {
         const mappedData = cases.map((item) => {
           return {
             ...item,
-            session_time: item.sessions.length
-              ? item.sessions[item.sessions.length - 1].session_time
+            session_time: item.session_ids.length
+              ? item.sessions[item.session_ids.length - 1].session_time
               : null,
-            type: item.sessions.length
-              ? item.sessions[item.sessions.length - 1].type
+            type: item.session_ids.length
+              ? item.sessions[item.session_ids.length - 1].type
               : null,
-            session_count: item.sessions.length,
+            session_count: item.session_ids.length,
           };
         });
         const totalCount = await Case.countDocuments({ id: userId, status });
