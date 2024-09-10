@@ -956,7 +956,8 @@ exports.getSession = async (req, res) => {
     const { id } = req.params;
     const session = await Session.findById(id)
       .populate("user")
-      .populate("counsellor");
+      .populate("counsellor")
+      .populate("case_id");
     if (session) {
       return responseHandler(res, 200, "Session found", session);
     }

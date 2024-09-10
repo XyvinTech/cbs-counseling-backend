@@ -791,13 +791,29 @@ exports.deleteTime = async (req, res) => {
   try {
     const { id } = req.params;
 
+    const existingTime = await Time.findById(id);
+
+    if (!existingTime) {
+      return responseHandler(res, 404, "Time not found");
+    }
+
     if (Array.isArray(req.body.times) && req.body.times.length === 0) {
       await Time.findByIdAndDelete(id);
       return responseHandler(res, 200, "Time deleted successfully");
     }
+
+    const updatedTimes = existingTime.times.filter(
+      (existingInterval) =>
+        !req.body.times.some(
+          (deleteInterval) =>
+            deleteInterval.start === existingInterval.start &&
+            deleteInterval.end === existingInterval.end
+        )
+    );
+
     const updatedTime = await Time.findByIdAndUpdate(
       id,
-      { $set: { times: req.body.times } },
+      { $set: { times: updatedTimes } },
       { new: true }
     );
 
