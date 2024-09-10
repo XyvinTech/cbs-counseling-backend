@@ -629,7 +629,9 @@ exports.addEntry = async (req, res) => {
 exports.getAllCounsellors = async (req, res) => {
   try {
     const { counsellorType } = req.query;
-    const counsellors = await User.find({ counsellorType: counsellorType });
+    const counsellors = await User.find({
+      counsellorType: { $in: counsellorType },
+    });
     const mappedData = counsellors.map((counsellor) => {
       return {
         id: counsellor.id,
