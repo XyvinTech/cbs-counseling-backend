@@ -402,6 +402,7 @@ exports.addEntry = async (req, res) => {
         description: checkSession.description,
         counsellor: refer,
         session_id: sc_id,
+        case_id: id,
       };
 
       const session = await Session.create(data);
@@ -547,6 +548,7 @@ exports.addEntry = async (req, res) => {
       counsellor: req.userId,
       status: "progress",
       session_id: sc_id,
+      case_id: id,
     };
 
     const newSessionRes = await Session.create(sessionData);
