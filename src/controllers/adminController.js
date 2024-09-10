@@ -937,7 +937,7 @@ exports.getCaseSessions = async (req, res) => {
       .populate("counsellor", "name");
     const mappedData = sessions.map((session) => {
       return {
-        ...session,
+        ...session._doc,
         user: session.user.name,
         counsellor: session.counsellor.name,
       };
