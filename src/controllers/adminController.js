@@ -588,13 +588,20 @@ exports.listController = async (req, res) => {
         .lean();
       const mappedData = sessions.map((session) => {
         return {
-          ...sessions,
+          ...session,
           user_name: session.user.name,
+          counsellor_name: session.session_ids[0].counsellor.name,
         };
       });
       if (sessions.length > 0) {
         const totalCount = await Case.countDocuments(filter);
-        return responseHandler(res, 200, "Reports found", mappedData, totalCount);
+        return responseHandler(
+          res,
+          200,
+          "Reports found",
+          mappedData,
+          totalCount
+        );
       }
       return responseHandler(res, 404, "No reports found");
     } else if (type === "counselling-type") {
