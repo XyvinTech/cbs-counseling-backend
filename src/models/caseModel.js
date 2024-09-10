@@ -6,7 +6,7 @@ const caseSchema = mongoose.Schema(
     user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     concern_raised: { type: Date },
     referer: { type: [mongoose.Schema.Types.ObjectId], ref: "User" },
-    referer_remark: { type: [String] },
+    referer_remark: { type: [Object] },
     reason_for_closing: { type: String },
     status: {
       type: String,

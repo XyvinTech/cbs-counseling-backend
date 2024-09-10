@@ -1167,11 +1167,13 @@ exports.refereeRemark = async (req, res) => {
     } else {
       updatedRemarks = [...remarks, referee_remark];
     }
-    const updateRemark = await Case.findByIdAndUpdate(
-      id,
-      { remark: updatedRemarks },
-      { new: true }
-    );
+    // const updateRemark = await Case.findByIdAndUpdate(
+    //   id,
+    //   { remark: updatedRemarks },
+    //   { new: true }
+    // );
+    findCase.referer_remark.push(referee_remark);
+    const updateRemark = await findCase.save();
     if (!updateRemark) return responseHandler(res, 400, "Remark update failed");
     return responseHandler(
       res,
