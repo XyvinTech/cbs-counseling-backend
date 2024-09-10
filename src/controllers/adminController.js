@@ -581,14 +581,20 @@ exports.listController = async (req, res) => {
       }
       const sessions = await Case.find(filter)
         .populate("user")
-        .populate("session_ids.counsellor")
+        .populate("session_ids")
         .skip(skipCount)
         .limit(limit)
         .sort({ createdAt: -1 })
         .lean();
+      const mappedData = sessions.map((session) => {
+        return {
+          ...sessions,
+          user_name: session.user.name,
+        };
+      });
       if (sessions.length > 0) {
         const totalCount = await Case.countDocuments(filter);
-        return responseHandler(res, 200, "Reports found", sessions, totalCount);
+        return responseHandler(res, 200, "Reports found", mappedData, totalCount);
       }
       return responseHandler(res, 404, "No reports found");
     } else if (type === "counselling-type") {
