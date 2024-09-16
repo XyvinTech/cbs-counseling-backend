@@ -187,17 +187,17 @@ exports.listController = async (req, res) => {
       if (cases.length > 0) {
         const mappedData = cases.map((item) => {
           return {
-            ...item,
+            ...item._doc,
             session_time: item.session_ids.length
-              ? item.sessions[item.session_ids.length - 1].session_time
+              ? item.session_ids[item.session_ids.length - 1].session_time
               : null,
             type: item.session_ids.length
-              ? item.sessions[item.session_ids.length - 1].type
+              ? item.session_ids[item.session_ids.length - 1].type
               : null,
             session_count: item.session_ids.length,
           };
         });
-        const totalCount = await Case.countDocuments({ id: userId, status });
+        const totalCount = await Case.countDocuments(filter);
         return responseHandler(res, 200, "Cases found", mappedData, totalCount);
       }
       return responseHandler(res, 404, "No cases found");
