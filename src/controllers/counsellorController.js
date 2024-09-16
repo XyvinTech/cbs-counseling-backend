@@ -248,8 +248,9 @@ exports.listController = async (req, res) => {
         return {
           ...item._doc,
           user_name: item.user.name,
-          couselling_type:
-            item.session_ids[item.session_ids.length - 1].type,
+          couselling_type: item.session_ids[item.session_ids.length - 1].type,
+          description:
+            item.session_ids[item.session_ids.length - 1].description,
         };
       });
       if (sessions.length > 0) {
