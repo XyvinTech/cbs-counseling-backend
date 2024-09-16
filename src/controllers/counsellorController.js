@@ -183,11 +183,12 @@ exports.listController = async (req, res) => {
         filter.$or = [{ "user.name": { $regex: searchQuery, $options: "i" } }];
       }
 
-      const cases = await Case.find(filter).populate("session_ids");
+      const cases = await Case.find(filter).populate("session_ids").populate("user");
       if (cases.length > 0) {
         const mappedData = cases.map((item) => {
           return {
             ...item._doc,
+            user_name: item.user.name,
             session_time: item.session_ids.length
               ? item.session_ids[item.session_ids.length - 1].session_time
               : null,
