@@ -183,7 +183,9 @@ exports.listController = async (req, res) => {
         filter.$or = [{ "user.name": { $regex: searchQuery, $options: "i" } }];
       }
 
-      const cases = await Case.find(filter).populate("session_ids").populate("user");
+      const cases = await Case.find(filter)
+        .populate("session_ids")
+        .populate("user");
       if (cases.length > 0) {
         const mappedData = cases.map((item) => {
           return {
@@ -239,10 +241,26 @@ exports.listController = async (req, res) => {
       if (searchQuery) {
         filter.$or = [{ "user.name": { $regex: searchQuery, $options: "i" } }];
       }
-      const sessions = await Case.find(filter);
+      const sessions = await Case.find(filter)
+        .populate("session_ids")
+        .populate("user");
+      const mappedData = sessions.map((item) => {
+        return {
+          ...item._doc,
+          user_name: item.user.name,
+          couselling_type:
+            item.session_ids[item.session_ids.length - 1].counselling_type,
+        };
+      });
       if (sessions.length > 0) {
         const totalCount = await Case.countDocuments(filter);
-        return responseHandler(res, 200, "Reports found", sessions, totalCount);
+        return responseHandler(
+          res,
+          200,
+          "Reports found",
+          mappedData,
+          totalCount
+        );
       }
       return responseHandler(res, 404, "No reports found");
     } else {
