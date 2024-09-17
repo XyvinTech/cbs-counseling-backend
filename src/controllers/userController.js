@@ -405,7 +405,7 @@ exports.getAvailableTimes = async (req, res) => {
     nextDate.setDate(currentDate.getDate() + 1);
 
     const filter = {
-      user: id,
+      counsellor: id,
       session_date: { $gte: previousDate, $lte: nextDate },
     };
     const session = await Session.find(filter);
