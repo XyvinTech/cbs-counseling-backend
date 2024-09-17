@@ -283,25 +283,26 @@ exports.acceptSession = async (req, res) => {
       { new: true }
     )
       .populate("user")
+      .populate("case_id")
       .populate("counsellor");
     const session = await Session.findById(id)
       .populate("user")
       .populate("counsellor");
     await Case.findByIdAndUpdate(
-      updatedSession.case_id,
+      updatedSession.case_id._id,
       { status: "progress" },
       { new: true }
     );
     const data = {
       user: req.userId,
-      caseId: updatedSession.case_id,
+      caseId: updatedSession.case_id._id,
       session: updatedSession._id,
       details: `Session with ${updatedSession.session_id} is accepted`,
     };
     await Notification.create(data);
     const notif_data = {
       user: updatedSession.user._id,
-      caseId: updatedSession.case_id,
+      caseId: updatedSession.case_id._id,
       session: updatedSession._id,
       details: `Your session with ${updatedSession.session_id} is accepted`,
     };
@@ -318,7 +319,7 @@ exports.acceptSession = async (req, res) => {
     
     Here are the details of your session:
     - **Session ID**: ${session.session_id}
-    - **Case ID**: ${session.case_id}
+    - **Case ID**: ${session.case_id.case_id}
     - **Date**: ${moment(session.session_date).format("DD-MM-YYYY")}
     - **Time**: ${session.session_time.start}-${session.session_time.end}
     
@@ -338,7 +339,7 @@ exports.acceptSession = async (req, res) => {
     
     Here are the details of the session:
     - **Session ID**: ${session.session_id}
-    - **Case ID**: ${session.case_id}
+    - **Case ID**: ${session.case_id.case_id}
     - **Date**: ${moment(session.session_date).format("DD-MM-YYYY")}
     - **Time**: ${session.session_time.start}-${session.session_time.end}
     - **User**: ${session.user.name}
