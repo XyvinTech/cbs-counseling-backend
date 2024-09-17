@@ -612,14 +612,14 @@ exports.addEntry = async (req, res) => {
       .populate("counsellor");
 
     const emailData = {
-      to: newSessionRes.user_email,
+      to: resSession.user.email,
       subject: `Your session requested with Session ID: ${resSession.session_id} and Case ID: ${upCase.case_id} for ${resSession.counsellor.name}`,
-      text: `Dear ${newSessionRes.user.name},\n\nYour appointment request for ${
-        newSessionRes.counsellor.name
-      } for ${moment(newSessionRes.session_date).format("DD-MM-YYYY")} at ${
-        newSessionRes.session_time.start
+      text: `Dear ${resSession.user.name},\n\nYour appointment request for ${
+        resSession.counsellor.name
+      } for ${moment(resSession.session_date).format("DD-MM-YYYY")} at ${
+        resSession.session_time.start
       }-${
-        newSessionRes.session_time.end
+        resSession.session_time.end
       } has been sent to the Counselor for approval. We will inform you through an email once your request has been approved by the Counselor.`,
     };
 
