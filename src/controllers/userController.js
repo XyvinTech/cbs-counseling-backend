@@ -150,14 +150,14 @@ exports.createSession = async (req, res) => {
     await sendMail(emailData);
     const data = {
       user: req.userId,
-      caseId: caseId._id,
+      case_id: caseId._id,
       session: session._id,
       details: "Your session has been requested. Please wait for approval",
     };
     await Notification.create(data);
     const notif_data = {
       user: session.counsellor,
-      caseId: caseId._id,
+      case_id: caseId._id,
       session: session._id,
       details: "New session requested",
     };

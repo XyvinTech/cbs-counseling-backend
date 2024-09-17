@@ -295,14 +295,14 @@ exports.acceptSession = async (req, res) => {
     );
     const data = {
       user: req.userId,
-      caseId: updatedSession.case_id._id,
+      case_id: updatedSession.case_id._id,
       session: updatedSession._id,
       details: `Session with ${updatedSession.session_id} is accepted`,
     };
     await Notification.create(data);
     const notif_data = {
       user: updatedSession.user._id,
-      caseId: updatedSession.case_id._id,
+      case_id: updatedSession.case_id._id,
       session: updatedSession._id,
       details: `Your session with ${updatedSession.session_id} is accepted`,
     };
@@ -488,14 +488,14 @@ exports.addEntry = async (req, res) => {
       await sendMail(emailData);
       const notifData = {
         user: req.userId,
-        caseId: upCase._id,
+        case_id: upCase._id,
         session: session._id,
         details: "Your session has been requested. Please wait for approval",
       };
       await Notification.create(notifData);
       const notif_data = {
         user: session.counsellor._id,
-        caseId: upCase._id,
+        case_id: upCase._id,
         session: session._id,
         details: "New session requested",
       };
@@ -561,7 +561,7 @@ exports.addEntry = async (req, res) => {
       await sendMail(mailData);
       const notifData = {
         user: refer,
-        caseId: checkSession.case_id._id,
+        case_id: checkSession.case_id._id,
         session: checkSession._id,
         details: "Session feedback requested",
       };
@@ -629,14 +629,14 @@ exports.addEntry = async (req, res) => {
     await sendMail(emailData);
     const notifData = {
       user: req.userId,
-      caseId: upCase._id,
+      case_id: upCase._id,
       session: resSession._id,
       details: "Your session has been requested. Please wait for approval",
     };
     await Notification.create(notifData);
     const notif_data = {
       user: resSession.counsellor._id,
-      caseId: upCase._id,
+      case_id: upCase._id,
       session: resSession._id,
       details: "New session requested",
     };
