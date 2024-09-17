@@ -393,7 +393,10 @@ exports.addEntry = async (req, res) => {
       );
     }
 
-    const checkSession = await Session.findById(session_id);
+    const checkSession = await Session.findById(session_id)
+      .populate("case_id")
+      .populate("counsellor")
+      .populate("user");
 
     //? Handle case closure
     if (close) {
@@ -537,7 +540,7 @@ exports.addEntry = async (req, res) => {
       );
       const mailData = {
         to: counsellor.email,
-        subject: `Feedback requested for Session ID: ${checkSession.session_id} and Case ID: ${checkSession.case_id}`,
+        subject: `Feedback requested for Session ID: ${checkSession.session_id} and Case ID: ${checkSession.case_id.case_id}`,
         text: `Dear ${counsellor.name},
       
       A session request has been made by ${
@@ -545,7 +548,7 @@ exports.addEntry = async (req, res) => {
       } with the following details:
       
       - **Session ID**: ${checkSession.session_id}
-      - **Case ID**: ${checkSession.case_id}
+      - **Case ID**: ${checkSession.case_id.case_id}
       - **Requested Date**: ${moment(checkSession.session_date).format(
         "DD-MM-YYYY"
       )}
@@ -558,7 +561,7 @@ exports.addEntry = async (req, res) => {
       await sendMail(mailData);
       const notifData = {
         user: refer,
-        caseId: checkSession.case_id,
+        caseId: checkSession.case_id._id,
         session: checkSession._id,
         details: "Session feedback requested",
       };
