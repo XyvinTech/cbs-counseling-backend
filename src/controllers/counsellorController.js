@@ -544,7 +544,7 @@ exports.addEntry = async (req, res) => {
         text: `Dear ${counsellor.name},
       
       A session request has been made by ${
-        checkSession.user.name
+        checkSession.counsellor.name
       } with the following details:
       
       - **Session ID**: ${checkSession.session_id}
