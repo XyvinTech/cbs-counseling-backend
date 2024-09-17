@@ -562,7 +562,10 @@ exports.getFullTimes = async (req, res) => {
 exports.getNotifications = async (req, res) => {
   try {
     const { userId } = req;
-    const notifications = await Notification.find({ user: userId });
+    const notifications = await Notification.find({
+      user: userId,
+      isRead: false,
+    });
     if (!notifications)
       return responseHandler(res, 400, `No Notification found`);
     return responseHandler(res, 200, `Notification Found`, notifications);
