@@ -670,6 +670,7 @@ exports.getAllCounsellors = async (req, res) => {
   try {
     const { counsellorType } = req.query;
     const filter = {
+      _id: { $ne: req.userId },
       userType: "counsellor",
     };
     if (counsellorType) {
