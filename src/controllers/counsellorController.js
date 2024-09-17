@@ -668,7 +668,9 @@ exports.addEntry = async (req, res) => {
 exports.getAllCounsellors = async (req, res) => {
   try {
     const { counsellorType } = req.query;
-    const filter = {};
+    const filter = {
+      userType: "counsellor",
+    };
     if (counsellorType) {
       filter.counsellorType = counsellorType;
     }
