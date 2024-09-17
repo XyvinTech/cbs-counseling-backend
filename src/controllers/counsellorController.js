@@ -474,14 +474,14 @@ exports.addEntry = async (req, res) => {
         .populate("user");
 
       const emailData = {
-        to: session.user.email,
-        subject: `Your session requested with Session ID: ${newSession.session_id} and Case ID: ${upCase.case_id} for ${session.counsellor.name}`,
-        text: `Dear ${session.user.name},\n\nYour appointment request for ${
-          session.counsellor.name
-        } for ${moment(session.session_date).format("DD-MM-YYYY")} at ${
-          session.session_time.start
+        to: newSession.user.email,
+        subject: `Your session requested with Session ID: ${newSession.session_id} and Case ID: ${upCase.case_id} for ${newSession.counsellor.name}`,
+        text: `Dear ${newSession.user.name},\n\nYour appointment request for ${
+          newSession.counsellor.name
+        } for ${moment(newSession.session_date).format("DD-MM-YYYY")} at ${
+          newSession.session_time.start
         }-${
-          session.session_time.end
+          newSession.session_time.end
         } has been sent to the Counselor for approval. We will inform you through an email once your request has been approved by the Counselor.`,
       };
 
@@ -500,16 +500,16 @@ exports.addEntry = async (req, res) => {
         details: "New session requested",
       };
       const counData = {
-        to: session.counsellor.email,
-        subject: `You have a new session requested with Session ID: ${newSession.session_id} and Case ID: ${upCase.case_id} from ${session.user.name}`,
+        to: newSession.counsellor.email,
+        subject: `You have a new session requested with Session ID: ${newSession.session_id} and Case ID: ${upCase.case_id} from ${newSession.user.name}`,
         text: `Dear ${
-          session.counsellor.name
+          newSession.counsellor.name
         },\n\nYou have received an appointment request from ${
-          session.user.name
+          newSession.user.name
         } for ${moment(session.session_date).format("DD-MM-YYYY")} at ${
-          session.session_time.start
+          newSession.session_time.start
         }-${
-          session.session_time.end
+          newSession.session_time.end
         }. The request has been sent to you for approval. We will notify you via email once the request has been approved.`,
       };
       await sendMail(counData);
