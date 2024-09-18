@@ -3,27 +3,27 @@ name: Deploy Node.js to Windows Server
 on:
   push:
     branches:
-      - main  # Replace with your branch if needed
+      - main  # Trigger deployment on pushes to the main branch
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest  # GitHub-hosted runner
+    runs-on: ubuntu-latest  # GitHub-hosted runner (Linux is fine since it just SSHes to the server)
 
     steps:
       # Check out the code from the repository
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3  # Use the latest version of the checkout action
 
       # Deploy via SSH to the Windows Server
       - name: Deploy to Windows Server
-        uses: appleboy/ssh-action@master
+        uses: appleboy/ssh-action@v0.1.8  # Using the specific version of the SSH action
         with:
-          host: ${{ secrets.SERVER_PUBLIC_IP }}   # Replace with your server's public IP
+          host: ${{ secrets.SERVER_PUBLIC_IP }}  # Public IP of your Windows server
           username: ${{ secrets.SERVER_SSH_USERNAME }}  # Your server's SSH username
-          key: ${{ secrets.SSH_PRIVATE_KEY }}  # Use the secret we created
-          port: ${{ secrets.SERVER_PORT }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}  # Your private SSH key (ensure it has no passphrase)
+          port: ${{ secrets.SERVER_PORT }}  # SSH port (usually 22)
           script: |
-            cd C:/cbs-councelling-app/counseling-backend  # Directory where your app is located
-            git pull origin main           # Pull the latest code from GitHub
-            npm install                    # Install dependencies
-            pm2 restart all                # Restart the app using PM2 (if you use it)
+            cd C:/cbs-councelling-app/counseling-backend  # Path to your Node.js app on the server
+            git pull origin main  # Pull latest code from GitHub
+            npm install  # Install/update dependencies
+            npm start  # Restart the app using PM2 (if you're using PM2)
