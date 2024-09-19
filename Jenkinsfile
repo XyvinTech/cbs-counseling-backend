@@ -6,7 +6,18 @@ pipeline {
     }
     environment {
         NODE_ENV = 'production'
+        ENV_FILE = credentials('cbs-backend') // replace with your credential ID
+
     }
+    stages {
+        stage('Prepare Environment') {
+            steps {
+                script {
+                    // Write the contents of the credential to a .env file
+                    writeFile file: '.env', text: "${ENV_FILE}"
+                }
+            }
+        }
     stages {
         stage('Clone repository') {
             steps {
