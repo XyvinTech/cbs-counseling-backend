@@ -2,7 +2,7 @@ pipeline {
     agent any
     tools {
         // This should match the NodeJS installation name in Jenkins (configured via Global Tool Configuration)
-        nodejs "Node.js 20.x"
+        nodejs "Nodejs 20.x"
     }
     environment {
         NODE_ENV = 'production'
