@@ -39,6 +39,11 @@ pipeline {
                 bat 'npm install'
             }
         }
+        stage('Stop Application') {
+             steps {
+                bat 'pm2 stop app.js || echo "No existing process to stop."'
+            }
+        }
         stage('Start application') {
             steps {
                 // Start the application
