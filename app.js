@@ -27,6 +27,12 @@ const BASE_PATH = `/api/${API_VERSION}`;
 //* Import database connection module
 require("./src/helpers/connection");
 
+app.use(express.static("dist"));
+
+app.get("/", (req, res) => {
+  res.sendFile(__dirname + "/dist/index.html");
+});
+
 //* Swagger setup
 app.use(
   "/api-docs",
