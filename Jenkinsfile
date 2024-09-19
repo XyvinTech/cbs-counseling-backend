@@ -41,7 +41,16 @@ pipeline {
     }
     post {
         always {
-            echo 'Build process completed'
+            // Clean up the workspace after the build
+            cleanWs()
+        }
+        failure {
+            // Notify if the build fails
+            echo "Build failed!"
+        }
+        success {
+            // Notify if the build succeeds
+            echo "Build succeeded!"
         }
     }
 }
