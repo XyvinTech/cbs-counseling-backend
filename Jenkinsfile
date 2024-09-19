@@ -6,14 +6,16 @@ pipeline {
     }
     environment {
         NODE_ENV = 'production'
-        ENV_FILE = readFile from: credentialsId('cbs-backend') // replace with your credential ID
+        ENV_FILE = credentials('cbs-backend') // replace with your credential ID
     }
     stages {
         stage('Prepare Environment') {
             steps {
                 script {
+                echo "ENV_FILE contents: ${ENV_FILE}" // Be careful with logging sensitive data
+
                 def cred = credentials('cbs-backend')
-                writeFile file: '.env', text: cred.getSecret() // Access the actual content
+                writeFile file: '.env', text: "${ENV_FILE}" // Access the actual content
                 }
             }
         }
