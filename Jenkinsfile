@@ -7,7 +7,6 @@ pipeline {
     environment {
         NODE_ENV = 'production'
         ENV_FILE = credentials('cbs-backend') // replace with your credential ID
-
     }
     stages {
         stage('Prepare Environment') {
@@ -18,7 +17,6 @@ pipeline {
                 }
             }
         }
-    stages {
         stage('Clone repository') {
             steps {
                 // Cloning the repository from GitHub
@@ -31,18 +29,6 @@ pipeline {
                 bat 'npm install'
             }
         }
-        // stage('Run tests') {
-        //     steps {
-        //         // Run tests if any
-        //         bat 'npm test'
-        //     }
-        // }
-        // stage('Build project') {
-        //     steps {
-        //         // Build process if any
-        //         bat 'npm run build'
-        //     }
-        // }
         stage('Start application') {
             steps {
                 // Start the application
