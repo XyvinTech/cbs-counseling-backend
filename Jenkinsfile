@@ -47,15 +47,15 @@ pipeline {
         }
     }
     post {
-        always {
-            script {
-                try {
-                    cleanWs()
-                } catch (Exception e) {
-                    echo "Cleanup failed: ${e.getMessage()}"
-                }
-            }
-        }
+        // always {
+        //     script {
+        //         try {
+        //             cleanWs()
+        //         } catch (Exception e) {
+        //             echo "Cleanup failed: ${e.getMessage()}"
+        //         }
+        //     }
+        // }
         failure {
             // Notify if the build fails
             echo "Build failed!"
