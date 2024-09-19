@@ -6,16 +6,17 @@ pipeline {
     }
     environment {
         NODE_ENV = 'production'
-        ENV_FILE = credentials('cbs-backend') // replace with your credential ID
+        ENV_FILE = readFile from: credentialsId('cbs-backend') // replace with your credential ID
     }
     stages {
         stage('Prepare Environment') {
             steps {
                 script {
-                    // Write the contents of the credential to a .env file
-                    writeFile file: '.env', text: "${ENV_FILE}"
+                def cred = credentials('cbs-backend')
+                writeFile file: '.env', text: cred.getSecret() // Access the actual content
                 }
             }
+        }
         }
         stage('Clone repository') {
             steps {
