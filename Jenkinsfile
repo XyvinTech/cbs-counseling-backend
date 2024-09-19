@@ -12,10 +12,17 @@ pipeline {
         stage('Prepare Environment') {
             steps {
                 script {
-                echo "ENV_FILE contents: ${ENV_FILE}" // Be careful with logging sensitive data
+                    // Use the secret file credential
+                    def envFile = 'cbs-backend' // Use the ID you set for your secret file
+                    // Unpack the secret file to the workspace
+                    withCredentials([file(credentialsId: envFile, variable: 'ENV_FILE')]) {
+                        // Write the contents of the secret file to .env
+                        writeFile file: '.env', text: readFile(ENV_FILE)
+                    }
 
-                def cred = credentials('cbs-backend')
-                writeFile file: '.env', text: "${ENV_FILE}" // Access the actual content
+                    // Optionally, you can print the contents of the .env file for debugging
+                    echo "Loaded .env file contents:"
+                    bat 'type .env' // Use 'type' instead of 'cat' on Windows
                 }
             }
         }
