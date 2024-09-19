@@ -17,7 +17,7 @@ pipeline {
                 }
             }
         }
-        }
+        
         stage('Clone repository') {
             steps {
                 // Cloning the repository from GitHub
