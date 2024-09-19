@@ -48,8 +48,13 @@ pipeline {
     }
     post {
         always {
-            // Clean up the workspace after the build
-            cleanWs()
+            script {
+                try {
+                    cleanWs()
+                } catch (Exception e) {
+                    echo "Cleanup failed: ${e.getMessage()}"
+                }
+            }
         }
         failure {
             // Notify if the build fails
