@@ -39,21 +39,11 @@ pipeline {
                 bat 'npm install'
             }
         }
-        stage('Stop Application') {
-            steps {
-                script {
-                    // Check if the process exists, then stop it
-                    def result = bat(script: 'pm2 describe app.js || echo "No process running"', returnStdout: true).trim()
-                    
-                    if (!result.contains("No process running")) {
-                        bat 'pm2 stop app.js'
-                    } else {
-                        echo "No existing process to stop."
-                    }
-                }
-            }
-        }
-
+        // stage('Stop Application') {
+        //      steps {
+        //         bat 'pm2 stop app.js || echo "No existing process to stop."'
+        //     }
+        // }
         stage('Start application') {
             steps {
                 // Start the application
