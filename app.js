@@ -34,10 +34,6 @@ const frontendBuildPath = path.join(__dirname, '..', 'cbs-counseling-frontend', 
 // !Serve static files from the frontend build directory
 app.use(express.static(frontendBuildPath));
 
-// !For any other request, serve index.html from the frontend build folder
-app.get('*', (req, res) => {
-  res.sendFile(path.join(frontendBuildPath, 'index.html'));
-});
 
 //* Swagger setup
 app.use(
@@ -58,6 +54,12 @@ app.get(BASE_PATH, (req, res) => {
     200,
     "🛡️ Welcome! All endpoints are fortified. Do you possess the master 🗝️?"
   );
+});
+
+
+// !For any other request, serve index.html from the frontend build folder
+app.get('*', (req, res) => {
+  res.sendFile(path.join(frontendBuildPath, 'index.html'));
 });
 
 //! Start the server and listen on the specified port from environment variable
