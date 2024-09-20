@@ -3,6 +3,7 @@ const express = require("express");
 const cors = require("cors");
 const volleyball = require("volleyball");
 const clc = require("cli-color");
+const path = require("path");
 const responseHandler = require("./src/helpers/responseHandler");
 const {
   swaggerUi,
@@ -27,10 +28,15 @@ const BASE_PATH = `/api/${API_VERSION}`;
 //* Import database connection module
 require("./src/helpers/connection");
 
-app.use(express.static("dist"));
+//! Define the absolute path to the frontend build directory
+const frontendBuildPath = path.join(__dirname, '..', 'cbs-counseling-frontend', 'dist');
 
-app.get("/", (req, res) => {
-  res.sendFile(__dirname + "/dist/index.html");
+// !Serve static files from the frontend build directory
+app.use(express.static(frontendBuildPath));
+
+// !For any other request, serve index.html from the frontend build folder
+app.get('*', (req, res) => {
+  res.sendFile(path.join(frontendBuildPath, 'index.html'));
 });
 
 //* Swagger setup
