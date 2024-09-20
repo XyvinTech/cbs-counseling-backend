@@ -48,6 +48,10 @@ pipeline {
             steps {
                 // Start the application
                 bat 'npm start'
+                        // Clear the logs
+                bat 'pm2 flush'
+                // Show logs for the application
+                bat 'pm2 logs app.js'
             }
         }
     }
