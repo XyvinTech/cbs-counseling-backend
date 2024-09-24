@@ -13,11 +13,14 @@ const {
 const adminRoute = require("./src/routes/admin");
 const counsellorRoute = require("./src/routes/counsellor");
 const userRoute = require("./src/routes/user");
+const fs = require("fs");
+const https = require("https");
+const http = require("http");
 const app = express();
 app.use(volleyball);
 
 //* Define the PORT & API version based on environment variable
-const { PORT, API_VERSION, NODE_ENV } = process.env;
+const { PORT, API_VERSION, NODE_ENV,HTTP_PORT } = process.env;
 //* Enable Cross-Origin Resource Sharing (CORS) middleware
 app.use(cors());
 //* Parse JSON request bodies
@@ -62,9 +65,25 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(frontendBuildPath, 'index.html'));
 });
 
-//! Start the server and listen on the specified port from environment variable
-app.listen(PORT, () => {
-  const portMessage = clc.redBright(`✓ App is running on port: ${PORT}`);
+// Load the SSL options (private key, certificate, and CA bundle)
+const sslOptions = {
+  key: fs.readFileSync(path.join(__dirname, "ssl", "private.key")),  // Private Key
+  cert: fs.readFileSync(path.join(__dirname, "ssl", "certificate.crt")), // Public Certificate
+  ca: fs.readFileSync(path.join(__dirname, "ssl", "ca_bundle.crt"))  // CA Bundle (optional but recommended)
+};
+
+//! Start the HTTPS server
+https.createServer(sslOptions, app).listen(PORT, () => {
+  const portMessage = clc.redBright(`✓ HTTPS App is running on port: ${PORT}`);
   const envMessage = clc.yellowBright(`✓ Environment: ${NODE_ENV}`);
   console.log(`${portMessage}\n${envMessage}`);
+});
+
+// Create an HTTP server that redirects to HTTPS
+http.createServer((req, res) => {
+  // Redirect any incoming request to HTTPS
+  res.writeHead(301, { Location: `https://${req.headers.host}${req.url}` });
+  res.end();
+}).listen(HTTP_PORT, () => {
+  console.log(clc.blueBright(`HTTP to HTTPS redirect is running on port: ${HTTP_PORT}`));
 });
