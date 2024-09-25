@@ -798,6 +798,7 @@ exports.getAllCounsellors = async (req, res) => {
 exports.getDashboard = async (req, res) => {
   try {
     const { page, limit, searchQuery, status } = req.query;
+    const skipCount = 10 * (page - 1);
     const student_count = await User.countDocuments({ userType: "student" });
     const counsellor_count = await User.countDocuments({
       userType: "counsellor",
