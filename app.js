@@ -4,6 +4,8 @@ const cors = require("cors");
 const volleyball = require("volleyball");
 const clc = require("cli-color");
 const path = require("path");
+const multer = require("multer");
+const fs = require("fs");
 const responseHandler = require("./src/helpers/responseHandler");
 const {
   swaggerUi,
@@ -29,7 +31,12 @@ const BASE_PATH = `/api/${API_VERSION}`;
 require("./src/helpers/connection");
 
 //! Define the absolute path to the frontend build directory
-const frontendBuildPath = path.join(__dirname, '..', 'cbs-counseling-frontend', 'dist');
+const frontendBuildPath = path.join(
+  __dirname,
+  "..",
+  "cbs-counseling-frontend",
+  "dist"
+);
 
 // !Serve static files from the frontend build directory
 app.use(express.static(frontendBuildPath));
@@ -47,6 +54,42 @@ app.use(`${BASE_PATH}/admin`, adminRoute);
 app.use(`${BASE_PATH}/counsellor`, counsellorRoute);
 app.use(`${BASE_PATH}/user`, userRoute);
 
+// Define the directory where the files will be uploaded
+const uploadDir = "C:/cbs_school";
+// Serve static files from the cbs_school folder
+app.use('/images', express.static(uploadDir));
+
+// Ensure the directory exists, if not, create it
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+// Set up multer storage configuration
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadDir); // The path to the folder where files will be stored
+  },
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + "-" + file.originalname); // Add timestamp to the file name to avoid duplicates
+  },
+});
+
+// Set up multer middleware
+const upload = multer({ storage });
+
+// Create a simple POST route for file upload
+app.post(`${BASE_PATH}/upload`, upload.single("file"), (req, res) => {
+  if (!req.file) {
+    return res.status(400).send("No file uploaded.");
+  }
+  return responseHandler(
+    res,
+    200,
+    "File uploaded successfully",
+    req.file.filename
+  );
+});
+
 //? Define a route for the API root
 app.get(BASE_PATH, (req, res) => {
   return responseHandler(
@@ -56,10 +99,9 @@ app.get(BASE_PATH, (req, res) => {
   );
 });
 
-
 // !For any other request, serve index.html from the frontend build folder
-app.get('*', (req, res) => {
-  res.sendFile(path.join(frontendBuildPath, 'index.html'));
+app.get("*", (req, res) => {
+  res.sendFile(path.join(frontendBuildPath, "index.html"));
 });
 
 //! Start the server and listen on the specified port from environment variable

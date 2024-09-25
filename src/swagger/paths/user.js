@@ -9,6 +9,8 @@
  *     description: List related endpoints
  *   - name: Notification
  *     description: Notification related endpoints
+ *   - name: Upload
+ *     description: Upload related endpoints
  */
 
 /**
@@ -445,4 +447,56 @@
  *         description: Notification not found
  *       500:
  *         description: Internal Server Error
+ */
+
+/**
+ * @swagger
+ * /upload:
+ *   post:
+ *     summary: Upload a file
+ *     description: Upload a single file using multipart/form-data.
+ *     tags:
+ *       - Upload
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *                 description: The file to upload
+ *     responses:
+ *       200:
+ *         description: File uploaded successfully
+ *       400:
+ *         description: No file uploaded
+ */
+
+/**
+ * @swagger
+ * /delete:
+ *   delete:
+ *     summary: Delete a file
+ *     description: Deletes a file from the server using the file path provided in the request body.
+ *     tags:
+ *       - Upload
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               filePath:
+ *                 type: string
+ *                 description: The absolute path of the file to delete
+ *                 example: "/path/to/your/file.txt"
+ *     responses:
+ *       200:
+ *         description: File deleted successfully
+ *       400:
+ *         description: Error deleting file or file not found
  */
