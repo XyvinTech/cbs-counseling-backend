@@ -65,25 +65,33 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(frontendBuildPath, 'index.html'));
 });
 
-// Load the SSL options (private key, certificate, and CA bundle)
-const sslOptions = {
-  key: fs.readFileSync(path.join(__dirname, "ssl", "private.key")),  // Private Key
-  cert: fs.readFileSync(path.join(__dirname, "ssl", "certificate.crt")), // Public Certificate
-  ca: fs.readFileSync(path.join(__dirname, "ssl", "ca_bundle.crt"))  // CA Bundle (optional but recommended)
-};
+if (NODE_ENV === 'development') {
+  // In development mode, run an HTTP server
+  http.createServer(app).listen(PORT, () => {
+    console.log(clc.greenBright(`✓ HTTP Development App is running on port: ${PORT}`));
+    console.log(clc.yellowBright(`✓ Environment: ${NODE_ENV}`));
+  });
+} else {
+  // Load the SSL options (private key, certificate, and CA bundle) for production
+  const sslOptions = {
+    key: fs.readFileSync(path.join(__dirname, "ssl", "private.key")),  // Private Key
+    cert: fs.readFileSync(path.join(__dirname, "ssl", "certificate.crt")), // Public Certificate
+    ca: fs.readFileSync(path.join(__dirname, "ssl", "ca_bundle.crt"))  // CA Bundle (optional but recommended)
+  };
 
-//! Start the HTTPS server
-https.createServer(sslOptions, app).listen(PORT, () => {
-  const portMessage = clc.redBright(`✓ HTTPS App is running on port: ${PORT}`);
-  const envMessage = clc.yellowBright(`✓ Environment: ${NODE_ENV}`);
-  console.log(`${portMessage}\n${envMessage}`);
-});
+  //! Start the HTTPS server
+  https.createServer(sslOptions, app).listen(PORT, () => {
+    const portMessage = clc.redBright(`✓ HTTPS App is running on port: ${PORT}`);
+    const envMessage = clc.yellowBright(`✓ Environment: ${NODE_ENV}`);
+    console.log(`${portMessage}\n${envMessage}`);
+  });
 
-// Create an HTTP server that redirects to HTTPS
-http.createServer((req, res) => {
-  // Redirect any incoming request to HTTPS
-  res.writeHead(301, { Location: `https://${req.headers.host}${req.url}` });
-  res.end();
-}).listen(HTTP_PORT, () => {
-  console.log(clc.blueBright(`HTTP to HTTPS redirect is running on port: ${HTTP_PORT}`));
-});
+  // Create an HTTP server that redirects to HTTPS
+  http.createServer((req, res) => {
+    // Redirect any incoming request to HTTPS
+    res.writeHead(301, { Location: `https://${req.headers.host}${req.url}` });
+    res.end();
+  }).listen(HTTP_PORT, () => {
+    console.log(clc.blueBright(`HTTP to HTTPS redirect is running on port: ${HTTP_PORT}`));
+  });
+}
