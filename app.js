@@ -15,7 +15,6 @@ const {
 const adminRoute = require("./src/routes/admin");
 const counsellorRoute = require("./src/routes/counsellor");
 const userRoute = require("./src/routes/user");
-const fs = require("fs");
 const https = require("https");
 const http = require("http");
 const app = express();

@@ -115,14 +115,7 @@ exports.getTimes = async (req, res) => {
   try {
     const times = await Time.find({ user: req.userId });
     if (!times) return responseHandler(res, 404, "No times found");
-
-        // Sort the 'times' array for each day by 'start' time
-        const sortedTimes = times.map(day => {
-          day.times.sort((a, b) => a.start.localeCompare(b.start));
-          return day;
-        });
-
-    return responseHandler(res, 200, "Times found", sortedTimes);
+    return responseHandler(res, 200, "Times found", times);
   } catch (error) {
     return responseHandler(res, 500, `Internal Server Error ${error.message}`);
   }
