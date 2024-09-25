@@ -189,7 +189,7 @@ exports.createCounsellor = async (req, res) => {
     const hashedPassword = await hashPassword(req.body.password);
     req.body.password = hashedPassword;
     const user = await User.create(req.body);
-    const day = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
+    const day = ["Monday", "Tuesday", "Wednesday", "Thursday", "Sunday"];
 
     for (let i = 0; i < day.length; i++) {
       await Time.create({
@@ -996,11 +996,14 @@ exports.deleteManyEvent = async (req, res) => {
     const deletionResults = await Promise.all(
       ids.map(async (id) => {
         const filePath = await Event.findById(id);
-        const absolutePath = path.resolve(filePath.requisition_image);
+        //!DIRECT PATH BECAUSE OF ISWKOMAN WINDOWS SERVER
+        const absolutePath = "C:/cbs_school/"+filePath.requisition_image;
+        console.log('test',absolutePath)
         fs.access(absolutePath, fs.constants.F_OK, (err) => {
           if (err) {
             return res.status(404).send("File not found.");
           }
+          console.log('test','23')
 
           fs.unlink(absolutePath, (err) => {
             if (err) {
