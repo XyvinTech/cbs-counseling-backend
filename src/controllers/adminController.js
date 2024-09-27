@@ -12,7 +12,7 @@ const Case = require("../models/caseModel");
 const times = require("../utils/times");
 const Time = require("../models/timeModel");
 const Type = require("../models/typeModel");
-const uploadDir = "C:/cbs_school_files";
+const uploadDir = "C:/cbs_school_files/";
 exports.loginAdmin = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -988,40 +988,48 @@ exports.deleteManyEvent = async (req, res) => {
   try {
     const { ids } = req.body;
     if (!ids || !Array.isArray(ids) || ids.length === 0) {
-      return responseHandler(
-        res,
-        400,
-        "A non-empty array of Event IDs is required"
-      );
+      return responseHandler(res, 400, "A non-empty array of Event IDs is required");
     }
-    const deletionResults = await Promise.all(
+
+    // Track failed deletions
+    const failedDeletions = [];
+
+    // Use Promise.allSettled to handle all promises and check for failures
+    const deletionResults = await Promise.allSettled(
       ids.map(async (id) => {
         const filePath = await Event.findById(id);
-        //!DIRECT PATH BECAUSE OF ISWKOMAN WINDOWS SERVER
-        const absolutePath = uploadDir +filePath.requisition_image;
-        console.log('test',absolutePath)
-        fs.access(absolutePath, fs.constants.F_OK, (err) => {
-          if (err) {
-            return res.status(404).send("File not found.");
-          }
-          console.log('test','23')
+        if (!filePath) {
+          failedDeletions.push(id); // Track if event doesn't exist
+          return Promise.reject(new Error(`Event with ID ${id} not found`));
+        }
 
-          fs.unlink(absolutePath, (err) => {
-            if (err) {
-              console.log("🚀 ~ Failed to delete the file.");
-            }
-            console.log("🚀 ~ File deleted successfully.");
-          });
-        });
-        return await Event.findByIdAndDelete(id);
+        // Direct path due to ISWKOMAN Windows server
+        const absolutePath = uploadDir + filePath.requisition_image;
+
+        // Use fs.promises for async/await style file operations
+        try {
+          await fs.promises.access(absolutePath);
+          await fs.promises.unlink(absolutePath);
+          console.log("🚀 ~ File deleted successfully.");
+        } catch (err) {
+          console.error(`Failed to delete file for event ID ${id}: ${err.message}`);
+          failedDeletions.push(id); // Track failed deletions
+        }
+
+        return Event.findByIdAndDelete(id);
       })
     );
 
-    if (deletionResults) {
-      return responseHandler(res, 200, "Event deleted successfully!");
+    // Check results of deletion
+    const allDeleted = deletionResults.every(result => result.status === "fulfilled");
+    if (allDeleted) {
+      return responseHandler(res, 200, "All events deleted successfully!");
+    } else if (failedDeletions.length > 0) {
+      return responseHandler(res, 207, `Some event deletions failed: ${failedDeletions.join(', ')}`);
     } else {
       return responseHandler(res, 400, "Some Event deletions failed.");
     }
+
   } catch (error) {
     return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
   }
