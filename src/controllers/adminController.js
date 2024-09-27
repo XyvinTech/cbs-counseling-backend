@@ -12,7 +12,7 @@ const Case = require("../models/caseModel");
 const times = require("../utils/times");
 const Time = require("../models/timeModel");
 const Type = require("../models/typeModel");
-const uploadDir = "C:/cbs_school";
+const uploadDir = "C:/cbs_school_files";
 exports.loginAdmin = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -998,7 +998,7 @@ exports.deleteManyEvent = async (req, res) => {
       ids.map(async (id) => {
         const filePath = await Event.findById(id);
         //!DIRECT PATH BECAUSE OF ISWKOMAN WINDOWS SERVER
-        const absolutePath = "C:/cbs_school/"+filePath.requisition_image;
+        const absolutePath = uploadDir +filePath.requisition_image;
         console.log('test',absolutePath)
         fs.access(absolutePath, fs.constants.F_OK, (err) => {
           if (err) {
