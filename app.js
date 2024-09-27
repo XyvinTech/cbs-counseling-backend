@@ -57,7 +57,7 @@ app.use(`${BASE_PATH}/counsellor`, counsellorRoute);
 app.use(`${BASE_PATH}/user`, userRoute);
 
 // Define the directory where the files will be uploaded
-const uploadDir = "C:/cbs_school";
+const uploadDir = "C:/cbs_school_files";
 // Serve static files from the cbs_school folder
 app.use('/images', express.static(uploadDir));
 

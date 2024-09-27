@@ -241,7 +241,7 @@ exports.createCounsellorBulk = async (req, res) => {
     const users = await User.create(hashedUsers);
 
     // Create time entries for each newly created counsellor
-    const day = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
+    const day = ["Monday", "Tuesday", "Wednesday", "Thursday", "Sunday"];
     const timeEntries = [];
 
     for (const user of users) {
