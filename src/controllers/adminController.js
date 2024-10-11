@@ -12,6 +12,8 @@ const Case = require("../models/caseModel");
 const times = require("../utils/times");
 const Time = require("../models/timeModel");
 const Type = require("../models/typeModel");
+const { generateRandomPassword } = require("../utils/generateRandomPassword");
+const sendMail = require("../utils/sendMail");
 const uploadDir = "C:/cbs_school_files/";
 exports.loginAdmin = async (req, res) => {
   try {
@@ -186,6 +188,10 @@ exports.createCounsellor = async (req, res) => {
       return responseHandler(res, 409, "Counsellor already exists");
     }
 
+    const password = generateRandomPassword();
+    const hashedPassword = await hashPassword(password);
+    req.body.password = hashedPassword;
+
     const user = await User.create(req.body);
     const day = ["Monday", "Tuesday", "Wednesday", "Thursday", "Sunday"];
 
@@ -196,6 +202,15 @@ exports.createCounsellor = async (req, res) => {
         times: times.times,
       });
     }
+
+    const data = {
+      to: user.email,
+      subject: "New counsellor created",
+      text: `Hello ${user.name},\n\nNew counsellor has been created. Your login username is: ${user.email} and your password is: ${password}\n\nRegards,\nAdmin`,
+    };
+
+    await sendMail(data);
+
     return responseHandler(res, 201, "Counsellor created", user);
   } catch (error) {
     return responseHandler(res, 500, `Internal Server Error ${error.message}`);
@@ -413,7 +428,20 @@ exports.createStudent = async (req, res) => {
       return responseHandler(res, 409, "Student already exists");
     }
 
+    const password = generateRandomPassword();
+    const hashedPassword = await hashPassword(password);
+    req.body.password = hashedPassword;
+
     const user = await User.create(req.body);
+
+    const data = {
+      to: user.email,
+      subject: "New student created",
+      text: `Hello ${user.name},\n\nNew student has been created. Your login username is: ${user.email} and your password is: ${password}\n\nRegards,\nAdmin`,
+    };
+
+    await sendMail(data);
+
     return responseHandler(res, 201, "Student created", user);
   } catch (error) {
     return responseHandler(res, 500, `Internal Server Error ${error.message}`);
