@@ -14,6 +14,7 @@ const Time = require("../models/timeModel");
 const Type = require("../models/typeModel");
 const { generateRandomPassword } = require("../utils/generateRandomPassword");
 const sendMail = require("../utils/sendMail");
+const { generateOTP } = require("../utils/generateOTP");
 const uploadDir = "C:/cbs_school_files/";
 exports.loginAdmin = async (req, res) => {
   try {
@@ -46,6 +47,70 @@ exports.loginAdmin = async (req, res) => {
     });
   } catch (error) {
     return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
+  }
+};
+
+exports.sendOTP = async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return responseHandler(res, 400, "Email is required");
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return responseHandler(res, 404, "User not found");
+    }
+
+    const otp = generateOTP(5);
+
+    user.otp = otp;
+    await user.save();
+
+    const data = {
+      to: user.email,
+      subject: "New Message from Admin",
+      text: `Hello ${user.name},\n\n Your OTP is ${otp} \n\n Thank you`,
+    };
+
+    await sendMail(data);
+
+    return responseHandler(res, 200, "OTP sent successfully");
+  } catch (error) {
+    return responseHandler(res, 500, `Internal Server Error ${error.message}`);
+  }
+};
+
+exports.verifyOTP = async (req, res) => {
+  try {
+    const { email, otp, password } = req.body;
+    if (!email || !otp) {
+      return responseHandler(res, 400, "Email and OTP are required");
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return responseHandler(res, 404, "User not found");
+    }
+
+    if (user.otp !== otp) {
+      return responseHandler(res, 401, "Invalid OTP");
+    }
+    user.otp = null;
+
+    if (password) {
+      const hashedPassword = await hashPassword(password);
+      user.password = hashedPassword;
+    }
+
+    await user.save();
+    return responseHandler(
+      res,
+      200,
+      "OTP verified successfully, password updated"
+    );
+  } catch (error) {
+    return responseHandler(res, 500, `Internal Server Error ${error.message}`);
   }
 };
 

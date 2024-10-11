@@ -4,6 +4,8 @@ const adminController = require("../controllers/adminController");
 const authVerify = require("../middlewares/authVerify");
 
 adminRoute.post("/login", adminController.loginAdmin);
+adminRoute.post("/send-otp", adminController.sendOTP);
+adminRoute.post("/verify-otp", adminController.verifyOTP);
 
 adminRoute.use(authVerify);
 
