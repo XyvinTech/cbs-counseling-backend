@@ -186,8 +186,6 @@ exports.createCounsellor = async (req, res) => {
       return responseHandler(res, 409, "Counsellor already exists");
     }
 
-    const hashedPassword = await hashPassword(req.body.password);
-    req.body.password = hashedPassword;
     const user = await User.create(req.body);
     const day = ["Monday", "Tuesday", "Wednesday", "Thursday", "Sunday"];
 
@@ -415,8 +413,6 @@ exports.createStudent = async (req, res) => {
       return responseHandler(res, 409, "Student already exists");
     }
 
-    const hashedPassword = await hashPassword(req.body.password);
-    req.body.password = hashedPassword;
     const user = await User.create(req.body);
     return responseHandler(res, 201, "Student created", user);
   } catch (error) {
@@ -988,7 +984,11 @@ exports.deleteManyEvent = async (req, res) => {
   try {
     const { ids } = req.body;
     if (!ids || !Array.isArray(ids) || ids.length === 0) {
-      return responseHandler(res, 400, "A non-empty array of Event IDs is required");
+      return responseHandler(
+        res,
+        400,
+        "A non-empty array of Event IDs is required"
+      );
     }
 
     // Track failed deletions
@@ -1012,7 +1012,9 @@ exports.deleteManyEvent = async (req, res) => {
           await fs.promises.unlink(absolutePath);
           console.log("🚀 ~ File deleted successfully.");
         } catch (err) {
-          console.error(`Failed to delete file for event ID ${id}: ${err.message}`);
+          console.error(
+            `Failed to delete file for event ID ${id}: ${err.message}`
+          );
           failedDeletions.push(id); // Track failed deletions
         }
 
@@ -1021,15 +1023,20 @@ exports.deleteManyEvent = async (req, res) => {
     );
 
     // Check results of deletion
-    const allDeleted = deletionResults.every(result => result.status === "fulfilled");
+    const allDeleted = deletionResults.every(
+      (result) => result.status === "fulfilled"
+    );
     if (allDeleted) {
       return responseHandler(res, 200, "All events deleted successfully!");
     } else if (failedDeletions.length > 0) {
-      return responseHandler(res, 207, `Some event deletions failed: ${failedDeletions.join(', ')}`);
+      return responseHandler(
+        res,
+        207,
+        `Some event deletions failed: ${failedDeletions.join(", ")}`
+      );
     } else {
       return responseHandler(res, 400, "Some Event deletions failed.");
     }
-
   } catch (error) {
     return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
   }

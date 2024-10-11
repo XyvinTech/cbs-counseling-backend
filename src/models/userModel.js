@@ -5,8 +5,14 @@ const userSchema = mongoose.Schema(
     name: { type: String },
     email: { type: String },
     password: { type: String },
-    mobile: { type: String },
+    mobile: { type: String, trim: true },
     designation: { type: String },
+    gender: {
+      type: String,
+      enum: ["male", "female", "other"],
+    },
+    dob: { type: Date },
+    StudentReferencesCode: { type: String },
     userType: {
       type: String,
       enum: ["counsellor", "student"],
@@ -14,7 +20,7 @@ const userSchema = mongoose.Schema(
     counsellorType: {
       type: [String],
     },
-    parentContact: { type: String },
+    parentContact: { type: String, trim: true },
     division: { type: String },
     status: {
       type: Boolean,
