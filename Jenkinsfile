@@ -41,7 +41,7 @@ pipeline {
         }
         stage('Stop Application') {
              steps {
-                bat 'pm2 stop app.js || echo "No existing process to stop."'
+                bat 'pm2 stop app || echo "No existing process to stop."'
             }
         }
         stage('Start application') {
