@@ -57,7 +57,10 @@ exports.sendOTP = async (req, res) => {
       return responseHandler(res, 400, "Email is required");
     }
 
-    const user = await User.findOne({ email });
+    let user = await User.findOne({ email });
+    if (!user) {
+      user = await Admin.findOne({ email });
+    }
     if (!user) {
       return responseHandler(res, 404, "User not found");
     }
@@ -88,7 +91,10 @@ exports.verifyOTP = async (req, res) => {
       return responseHandler(res, 400, "Email and OTP are required");
     }
 
-    const user = await User.findOne({ email });
+    let user = await User.findOne({ email });
+    if (!user) {
+      user = await Admin.findOne({ email });
+    }
     if (!user) {
       return responseHandler(res, 404, "User not found");
     }
