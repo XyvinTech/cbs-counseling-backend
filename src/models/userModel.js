@@ -3,7 +3,11 @@ const mongoose = require("mongoose");
 const userSchema = mongoose.Schema(
   {
     name: { type: String },
-    email: { type: String },
+    email: {
+      type: String,
+      trim: true,
+      lowercase: true,
+    },
     password: { type: String },
     mobile: { type: String, trim: true },
     designation: { type: String },
@@ -11,7 +15,6 @@ const userSchema = mongoose.Schema(
       type: String,
       enum: ["male", "female", "other"],
     },
-    dob: { type: Date },
     StudentReferencesCode: { type: String },
     userType: {
       type: String,

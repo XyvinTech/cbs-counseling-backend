@@ -4,13 +4,50 @@ const Session = require("../models/sessionModel");
 const Time = require("../models/timeModel");
 const User = require("../models/userModel");
 const Notification = require("../models/notificationModel");
-const { comparePasswords } = require("../utils/bcrypt");
+const { comparePasswords, hashPassword } = require("../utils/bcrypt");
 const { generateToken } = require("../utils/generateToken");
 const validations = require("../validations");
 const sendMail = require("../utils/sendMail");
 const Event = require("../models/eventModel");
 const moment = require("moment-timezone");
 const Type = require("../models/typeModel");
+
+// exports.registerUser = async (req, res) => {
+//   try {
+//     const filePath = "src/utils/response.json";
+//     console.log("🚀 ~ exports.registerUser= ~ filePath:", filePath);
+//     const fileData = fs.readFileSync(filePath);
+//     const jsonData = JSON.parse(fileData);
+
+//     const students = jsonData.data;
+//     console.log("🚀 ~ exports.registerUser= ~ students:", students);
+//     const hashedPassword = await hashPassword("password123");
+//     const userPromises = students.map(async (student) => {
+//       const user = new User({
+//         name: student.FullName,
+//         email: student.FatherEmailID, // use Father's email ID
+//         password: hashedPassword, // set a default password or handle it as per your requirement
+//         mobile: "+961" + student.FatherPhone, // Father’s phone number
+//         designation: student.ClassName, // Assuming ClassName is treated as designation
+//         gender: student.Gender ? "male" : "female", // Convert gender to string
+//         StudentReferencesCode: student.StudentReferencesCode,
+//         userType: "student", // userType is student
+//         parentContact: "+961" + student.MotherPhone || "", // Mother’s phone number as secondary contact
+//         division: student.Section, // Assuming section is treated as division
+//         status: student.Active, // Active status
+//       });
+
+//       return user.save(); // Save the user to the database
+//     });
+
+//     // Wait for all user saves to complete
+//     await Promise.all(userPromises);
+
+//     return responseHandler(res, 200, "Users registered successfully");
+//   } catch (error) {
+//     return responseHandler(res, 500, `Internal Server Error ${error.message}`);
+//   }
+// };
 
 exports.loginUser = async (req, res) => {
   try {
