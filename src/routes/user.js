@@ -3,7 +3,7 @@ const authVerify = require("../middlewares/authVerify");
 const userController = require("../controllers/userController");
 const userRoute = express.Router();
 
-userRoute.post("/register", userController.registerUser);
+// userRoute.post("/register", userController.registerUser);
 userRoute.post("/login", userController.loginUser);
 
 userRoute.use(authVerify);
