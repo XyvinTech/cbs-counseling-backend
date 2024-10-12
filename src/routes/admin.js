@@ -14,6 +14,8 @@ adminRoute
   .post(adminController.createAdmin)
   .get(adminController.getAdmin);
 
+adminRoute.post("/reset-password", adminController.resetPassword);
+
 adminRoute
   .route("/admin/:id")
   .put(adminController.editAdmin)

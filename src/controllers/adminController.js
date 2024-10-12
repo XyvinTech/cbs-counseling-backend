@@ -114,6 +114,42 @@ exports.verifyOTP = async (req, res) => {
   }
 };
 
+exports.resetPassword = async (req, res) => {
+  try {
+    const id = req.userId;
+    const { oldPassword, newPassword } = req.body;
+
+    if (!oldPassword || !newPassword) {
+      return responseHandler(
+        res,
+        400,
+        "Old password and new password are required"
+      );
+    }
+
+    if (!id) {
+      return responseHandler(res, 400, "User ID is required");
+    }
+
+    const user = await User.findById(id);
+    if (!user) {
+      return responseHandler(res, 404, "User not found");
+    }
+
+    const isPasswordValid = await comparePasswords(oldPassword, user.password);
+    if (!isPasswordValid) {
+      return responseHandler(res, 401, "Invalid old password");
+    }
+
+    const hashedPassword = await hashPassword(newPassword);
+    user.password = hashedPassword;
+    await user.save();
+    return responseHandler(res, 200, "Password updated successfully");
+  } catch (error) {
+    return responseHandler(res, 500, `Internal Server Error ${error.message}`);
+  }
+};
+
 exports.createAdmin = async (req, res) => {
   try {
     const createAdminValidator = validations.createAdminSchema.validate(
