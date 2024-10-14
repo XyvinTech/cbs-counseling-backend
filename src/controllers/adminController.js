@@ -354,10 +354,11 @@ exports.createCounsellorBulk = async (req, res) => {
     // Hash passwords
     const hashedUsers = await Promise.all(
       counseller.map(async (user) => {
-        const hashedPassword = await hashPassword(user.password);
+        const hashedPassword = await hashPassword("password123");
         return {
           ...user,
           password: hashedPassword,
+          userType: "counsellor",
         };
       })
     );
@@ -412,10 +413,11 @@ exports.createStudentBulk = async (req, res) => {
 
     const hashedUsers = await Promise.all(
       students.map(async (user) => {
-        const hashedPassword = await hashPassword(user.password);
+        const hashedPassword = await hashPassword("password123");
         return {
           ...user, // Spread the user object to retain other properties
           password: hashedPassword, // Replace the plain password with the hashed password
+          userType: "student",
         };
       })
     );
