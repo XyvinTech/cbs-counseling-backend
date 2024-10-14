@@ -29,7 +29,7 @@ exports.editCounsellorSchema = Joi.object({
   password: Joi.string(),
   mobile: Joi.string(),
   gender: Joi.string(),
-  counsellorType: Joi.string(),
+  counsellorType: Joi.array(),
   status: Joi.boolean(),
   designation: Joi.string(),
 });
