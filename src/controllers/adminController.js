@@ -32,6 +32,11 @@ exports.loginAdmin = async (req, res) => {
     }
 
     if (!user) {
+      user = await User.findOne({ StudentReferencesCode: email });
+      userType = user ? user.userType : null;
+    }
+
+    if (!user) {
       return responseHandler(res, 404, "User not found");
     }
 
