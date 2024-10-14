@@ -71,7 +71,6 @@ exports.editStudentSchema = Joi.object({
 exports.createEventSchema = Joi.object({
   title: Joi.string().required(),
   date: Joi.date().required(),
-  time: Joi.string().required(),
   venue: Joi.string().required(),
   guest: Joi.string().required(),
   requisition_image: Joi.string(),
@@ -83,7 +82,6 @@ exports.createEventSchema = Joi.object({
 exports.editEventSchema = Joi.object({
   title: Joi.string(),
   date: Joi.date(),
-  time: Joi.string().regex(/^([0-9]{2}):([0-9]{2}):([0-9]{2})$/),
   venue: Joi.string(),
   guest: Joi.string(),
   requisition_image: Joi.string(),
