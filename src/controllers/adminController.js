@@ -15,6 +15,7 @@ const Type = require("../models/typeModel");
 const { generateRandomPassword } = require("../utils/generateRandomPassword");
 const sendMail = require("../utils/sendMail");
 const { generateOTP } = require("../utils/generateOTP");
+const Notification = require("../models/notificationModel");
 const uploadDir = "C:/cbs_school_files/";
 exports.loginAdmin = async (req, res) => {
   try {
@@ -1297,6 +1298,21 @@ exports.getBigCalender = async (req, res) => {
       return responseHandler(res, 200, "Events found", mappedData);
     }
     return responseHandler(res, 404, "No Events found");
+  } catch (error) {
+    return responseHandler(res, 500, `Internal Server Error ${error.message}`);
+  }
+};
+
+exports.deleteCasesSessions = async (req, res) => {
+  try {
+    await Session.deleteMany({});
+    await Case.deleteMany({});
+    await Notification.deleteMany({});
+    return responseHandler(
+      res,
+      200,
+      "All cases and sessions deleted successfully"
+    );
   } catch (error) {
     return responseHandler(res, 500, `Internal Server Error ${error.message}`);
   }
