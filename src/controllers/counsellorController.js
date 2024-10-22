@@ -287,6 +287,7 @@ exports.acceptSession = async (req, res) => {
       .populate("counsellor");
     const session = await Session.findById(id)
       .populate("user")
+      .populate("case_id")
       .populate("counsellor");
     await Case.findByIdAndUpdate(
       updatedSession.case_id._id,

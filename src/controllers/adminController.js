@@ -552,7 +552,7 @@ exports.createStudent = async (req, res) => {
     const data = {
       to: user.email,
       subject: "New student created",
-      text: `Hello ${user.name},\n\nNew student has been created. Your login username is: ${user.email} and your password is: ${password}\n\nRegards,\nAdmin`,
+      text: `Hello ${user.name},\n\nNew student has been created. Your login username is: ${user.StudentReferencesCode} and your password is: ${password}\n\nRegards,\nAdmin`,
     };
 
     await sendMail(data);
