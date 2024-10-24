@@ -726,6 +726,13 @@ exports.getSession = async (req, res) => {
     const session = await Session.findById(id)
       .populate("user")
       .populate("case_id")
+      .populate({
+        path: "case_id",
+        populate: {
+          path: "referer",
+          select: "name",
+        },
+      })
       .populate("counsellor");
     if (session) {
       return responseHandler(res, 200, "Session found", session);
