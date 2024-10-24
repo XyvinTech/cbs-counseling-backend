@@ -7,6 +7,7 @@ adminRoute.post("/login", adminController.loginAdmin);
 adminRoute.post("/send-otp", adminController.sendOTP);
 adminRoute.post("/verify-otp", adminController.verifyOTP);
 adminRoute.get("/delete-cases-sessions", adminController.deleteCasesSessions);
+adminRoute.get("/update-numbers", adminController.updateNumbers);
 
 adminRoute.use(authVerify);
 

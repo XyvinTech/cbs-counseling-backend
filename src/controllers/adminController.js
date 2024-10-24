@@ -1317,3 +1317,41 @@ exports.deleteCasesSessions = async (req, res) => {
     return responseHandler(res, 500, `Internal Server Error ${error.message}`);
   }
 };
+
+exports.updateNumbers = async (req, res) => {
+  try {
+    await User.updateMany(
+      {
+        userType: "student",
+        $or: [
+          { mobile: { $regex: /^\+961/ } },
+          { parentContact: { $regex: /^\+961/ } },
+        ],
+      },
+      [
+        {
+          $set: {
+            mobile: {
+              $cond: [
+                { $regexMatch: { input: "$mobile", regex: /^\+961/ } },
+                { $concat: ["+968", { $substr: ["$mobile", 4, -1] }] },
+                "$mobile",
+              ],
+            },
+            parentContact: {
+              $cond: [
+                { $regexMatch: { input: "$parentContact", regex: /^\+961/ } },
+                { $concat: ["+968", { $substr: ["$parentContact", 4, -1] }] },
+                "$parentContact",
+              ],
+            },
+          },
+        },
+      ]
+    );
+
+    return responseHandler(res, 200, "Phone numbers updated successfully");
+  } catch (error) {
+    return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
+  }
+};
