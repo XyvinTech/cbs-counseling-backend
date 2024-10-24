@@ -962,6 +962,14 @@ exports.getDashboard = async (req, res) => {
       .limit(limit)
       .sort({ createdAt: -1 })
       .lean();
+
+    const mappedData = session_list.map((session) => {
+      return {
+        ...session,
+        user_name: session.user.name,
+        counsellor_name: session.counsellor.name,
+      };
+    });
     const totalCount = await Session.countDocuments({ status });
     const dashboard = {
       student_count,
@@ -969,7 +977,7 @@ exports.getDashboard = async (req, res) => {
       case_count,
       session_count,
       event_count,
-      session_list,
+      session_list: mappedData,
     };
     return responseHandler(res, 200, "Dashboard found", dashboard, totalCount);
   } catch (error) {
