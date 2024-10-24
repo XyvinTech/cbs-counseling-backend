@@ -503,7 +503,7 @@ exports.deleteManyUser = async (req, res) => {
       return responseHandler(
         res,
         400,
-        "A non-empty array of Counsellor IDs is required"
+        "A non-empty array of User IDs is required"
       );
     }
     const deletionResults = await Promise.all(
@@ -513,9 +513,9 @@ exports.deleteManyUser = async (req, res) => {
     );
 
     if (deletionResults) {
-      return responseHandler(res, 200, "Counsellors deleted successfully!");
+      return responseHandler(res, 200, "User deleted successfully!");
     } else {
-      return responseHandler(res, 400, "Some counsellor deletions failed.");
+      return responseHandler(res, 400, "Some user deletions failed.");
     }
   } catch (error) {
     return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
