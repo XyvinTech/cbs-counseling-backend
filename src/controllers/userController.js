@@ -237,7 +237,7 @@ exports.rescheduleSession = async (req, res) => {
     if (session.status !== "pending")
       return responseHandler(res, 400, "You can't reschedule this session");
     const updatedSession = {
-      ...session,
+      ...session._doc,
       status: "rescheduled",
       session_date,
       session_time,
