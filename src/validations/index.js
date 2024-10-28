@@ -1,4 +1,5 @@
 const Joi = require("joi");
+const { report } = require("../routes/counsellor");
 
 exports.createAdminSchema = Joi.object({
   name: Joi.string().required(),
@@ -120,5 +121,6 @@ exports.createSessionEntrySchema = Joi.object({
   details: Joi.string(),
   grade: Joi.string(),
   remarks: Joi.string(),
+  report: Joi.string(),
   with_session: Joi.boolean(),
 });
