@@ -380,6 +380,7 @@ exports.addEntry = async (req, res) => {
       interactions,
       reason_for_closing,
       with_session,
+      report
     } = req.body;
 
     const createSessionValidator =
@@ -413,7 +414,7 @@ exports.addEntry = async (req, res) => {
       //? Attempt to close the session
       await Session.findByIdAndUpdate(
         session_id,
-        { case_details: details, interactions, status: "completed" },
+        { case_details: details, interactions, status: "completed", report },
         {
           new: true,
         }
@@ -431,7 +432,7 @@ exports.addEntry = async (req, res) => {
       );
       await Session.findByIdAndUpdate(
         session_id,
-        { case_details: details, interactions, status: "completed" },
+        { case_details: details, interactions, status: "completed", report },
         {
           new: true,
         }
@@ -536,7 +537,7 @@ exports.addEntry = async (req, res) => {
       );
       await Session.findByIdAndUpdate(
         session_id,
-        { details, interactions },
+        { details, interactions, report},
         { new: true }
       );
       const mailData = {
@@ -572,7 +573,7 @@ exports.addEntry = async (req, res) => {
     }
     await Session.findByIdAndUpdate(
       session_id,
-      { case_details: details, interactions, status: "completed" },
+      { case_details: details, interactions, status: "completed", report },
       { new: true }
     );
     //? Default case: create a new session
@@ -593,6 +594,7 @@ exports.addEntry = async (req, res) => {
       status: "progress",
       session_id: sc_id,
       case_id: id,
+      report
     };
 
     const newSessionRes = await Session.create(sessionData);
