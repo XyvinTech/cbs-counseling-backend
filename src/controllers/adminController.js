@@ -486,6 +486,9 @@ exports.deleteCounsellor = async (req, res) => {
     }
 
     const deleteCounsellor = await User.findByIdAndDelete(id);
+    await Notification.deleteMany({ user: id });
+    await Time.deleteMany({ user: id });
+
     if (deleteCounsellor) {
       return responseHandler(res, 200, `Counsellor deleted successfully..!`);
     } else {
@@ -497,28 +500,33 @@ exports.deleteCounsellor = async (req, res) => {
 };
 
 exports.deleteManyUser = async (req, res) => {
+  const { ids } = req.body;
+
+  if (!ids || !Array.isArray(ids) || ids.length === 0) {
+    return responseHandler(
+      res,
+      400,
+      "A non-empty array of User IDs is required"
+    );
+  }
+
   try {
-    const { ids } = req.body;
-    if (!ids || !Array.isArray(ids) || ids.length === 0) {
-      return responseHandler(
-        res,
-        400,
-        "A non-empty array of User IDs is required"
-      );
-    }
-    const deletionResults = await Promise.all(
+    await Promise.all(
       ids.map(async (id) => {
-        return await User.findByIdAndDelete(id);
+        await User.findByIdAndDelete(id);
+        await Session.deleteMany({ user: id });
+        await Case.deleteMany({ user: id });
+        await Notification.deleteMany({ user: id });
       })
     );
 
-    if (deletionResults) {
-      return responseHandler(res, 200, "User deleted successfully!");
-    } else {
-      return responseHandler(res, 400, "Some user deletions failed.");
-    }
+    return responseHandler(res, 200, "Users deleted successfully!");
   } catch (error) {
-    return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
+    return responseHandler(
+      res,
+      500,
+      `Failed to delete users: ${error.message}`
+    );
   }
 };
 
@@ -620,6 +628,9 @@ exports.deleteStudent = async (req, res) => {
     }
 
     const deleteStudent = await User.findByIdAndDelete(id);
+    await Session.deleteMany({ user: id });
+    await Case.deleteMany({ user: id });
+    await Notification.deleteMany({ user: id });
     if (deleteStudent) {
       return responseHandler(res, 200, `Student deleted successfully..!`);
     } else {
@@ -938,7 +949,6 @@ exports.getDashboard = async (req, res) => {
   try {
     const { page, limit, searchQuery, status } = req.query;
     const skipCount = 10 * (page - 1);
-
 
     const student_count = await User.countDocuments({ userType: "student" });
     const counsellor_count = await User.countDocuments({
