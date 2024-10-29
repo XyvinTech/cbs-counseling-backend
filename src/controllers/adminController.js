@@ -707,7 +707,7 @@ exports.listController = async (req, res) => {
       }
       return responseHandler(res, 404, "No Events found");
     } else if (type === "sessions") {
-      const filter = { isDeleted: false };
+      const filter = {};
       if (searchQuery) {
         filter.$or = [
           { "user.name": { $regex: searchQuery, $options: "i" } },
@@ -727,7 +727,7 @@ exports.listController = async (req, res) => {
       }
       return responseHandler(res, 404, "No reports found");
     } else if (type === "cases") {
-      const filter = { isDeleted: false };
+      const filter = {};
       if (searchQuery) {
         filter.$or = [{ "user.name": { $regex: searchQuery, $options: "i" } }];
       }
