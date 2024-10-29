@@ -123,4 +123,5 @@ exports.createSessionEntrySchema = Joi.object({
   remarks: Joi.string(),
   report: Joi.string(),
   with_session: Joi.boolean(),
+  isEditable: Joi.boolean(),
 });
