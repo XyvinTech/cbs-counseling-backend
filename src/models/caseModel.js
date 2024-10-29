@@ -14,6 +14,7 @@ const caseSchema = mongoose.Schema(
       default: "pending",
     },
     session_ids: { type: [mongoose.Schema.Types.ObjectId], ref: "Session" },
+    isDeleted: { type: Boolean, default: false },
   },
   { timestamps: true }
 );

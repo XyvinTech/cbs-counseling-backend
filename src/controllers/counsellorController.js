@@ -129,6 +129,7 @@ exports.listController = async (req, res) => {
     if (type === "sessions") {
       const filter = {
         counsellor: userId,
+        isDeleted: false,
       };
       if (status) {
         filter.status = status;
@@ -175,6 +176,7 @@ exports.listController = async (req, res) => {
 
       const filter = {
         session_ids: { $in: sessionIds },
+        isDeleted: false,
       };
       if (status) {
         filter.status = status;

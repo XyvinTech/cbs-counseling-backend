@@ -22,6 +22,7 @@ const sessionSchema = mongoose.Schema(
     cancel_remark: { type: String },
     c_reschedule_remark: { type: String },
     c_cancel_remark: { type: String },
+    isDeleted: { type: Boolean, default: false },
   },
   { timestamps: true }
 );

@@ -514,8 +514,8 @@ exports.deleteManyUser = async (req, res) => {
     await Promise.all(
       ids.map(async (id) => {
         await User.findByIdAndDelete(id);
-        await Session.deleteMany({ user: id });
-        await Case.deleteMany({ user: id });
+        await Session.updateMany({ user: id }, { isDeleted: true });
+        await Case.updateMany({ user: id }, { isDeleted: true });
         await Notification.deleteMany({ user: id });
       })
     );
@@ -628,8 +628,8 @@ exports.deleteStudent = async (req, res) => {
     }
 
     const deleteStudent = await User.findByIdAndDelete(id);
-    await Session.deleteMany({ user: id });
-    await Case.deleteMany({ user: id });
+    await Session.updateMany({ user: id }, { isDeleted: true });
+    await Case.updateMany({ user: id }, { isDeleted: true });
     await Notification.deleteMany({ user: id });
     if (deleteStudent) {
       return responseHandler(res, 200, `Student deleted successfully..!`);
@@ -707,7 +707,7 @@ exports.listController = async (req, res) => {
       }
       return responseHandler(res, 404, "No Events found");
     } else if (type === "sessions") {
-      const filter = {};
+      const filter = { isDeleted: false };
       if (searchQuery) {
         filter.$or = [
           { "user.name": { $regex: searchQuery, $options: "i" } },
@@ -727,7 +727,7 @@ exports.listController = async (req, res) => {
       }
       return responseHandler(res, 404, "No reports found");
     } else if (type === "cases") {
-      const filter = {};
+      const filter = { isDeleted: false };
       if (searchQuery) {
         filter.$or = [{ "user.name": { $regex: searchQuery, $options: "i" } }];
       }
