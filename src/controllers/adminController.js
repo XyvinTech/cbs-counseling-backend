@@ -735,8 +735,8 @@ exports.listController = async (req, res) => {
       const mappedData = sessions.map((session) => {
         return {
           ...session,
-          user_name: session.user.name,
-          counsellor_name: session.session_ids[0].counsellor.name,
+          user_name: session?.user?.name,
+          counsellor_name: session?.session_ids[0]?.counsellor?.name,
         };
       });
       if (sessions.length > 0) {
