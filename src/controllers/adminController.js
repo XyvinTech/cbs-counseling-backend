@@ -1114,8 +1114,8 @@ exports.getCaseSessions = async (req, res) => {
     const mappedData = sessions.map((session) => {
       return {
         ...session._doc,
-        user: session.user.name,
-        counsellor: session.counsellor.name,
+        user: session?.user?.name,
+        counsellor: session?.counsellor?.name,
       };
     });
     if (sessions.length > 0) {
