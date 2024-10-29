@@ -380,7 +380,8 @@ exports.addEntry = async (req, res) => {
       interactions,
       reason_for_closing,
       with_session,
-      report
+      report,
+      isEditable,
     } = req.body;
 
     const createSessionValidator =
@@ -399,6 +400,23 @@ exports.addEntry = async (req, res) => {
       .populate("case_id")
       .populate("counsellor")
       .populate("user");
+
+    //? Handle isEditable for save button
+    if (isEditable) {
+      const updateSession = await Session.findByIdAndUpdate(
+        session_id,
+        { case_details: details, interactions, report },
+        {
+          new: true,
+        }
+      );
+      return responseHandler(
+        res,
+        200,
+        "Session updated successfully",
+        updateSession
+      );
+    }
 
     //? Handle case closure
     if (close) {
@@ -537,7 +555,7 @@ exports.addEntry = async (req, res) => {
       );
       await Session.findByIdAndUpdate(
         session_id,
-        { details, interactions, report},
+        { details, interactions, report },
         { new: true }
       );
       const mailData = {
@@ -594,7 +612,7 @@ exports.addEntry = async (req, res) => {
       status: "progress",
       session_id: sc_id,
       case_id: id,
-      report
+      report,
     };
 
     const newSessionRes = await Session.create(sessionData);
