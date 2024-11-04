@@ -21,13 +21,14 @@ const app = express();
 app.use(volleyball);
 
 //* Define the PORT & API version based on environment variable
-const { PORT, API_VERSION, NODE_ENV,HTTP_PORT } = process.env;
+const { PORT, API_VERSION, HTTP_PORT } = process.env;
 //* Enable Cross-Origin Resource Sharing (CORS) middleware
 app.use(cors());
 //* Parse JSON request bodies
 app.use(express.json());
 //* Set the base path for API routes
 const BASE_PATH = `/api/${API_VERSION}`;
+const NODE_ENV = process.env.NODE_ENV || "production";
 
 //* Import database connection module
 require("./src/helpers/connection");
