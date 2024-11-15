@@ -92,6 +92,7 @@ exports.editEventSchema = Joi.object({
 });
 
 exports.createSessionSchema = Joi.object({
+  form_id: Joi.string().required(),
   session_date: Joi.date().required(),
   session_time: Joi.object().required(),
   type: Joi.string().required(),

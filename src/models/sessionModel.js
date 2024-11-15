@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 const sessionSchema = mongoose.Schema(
   {
     session_id: { type: String },
-    user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    form_id: { type: mongoose.Schema.Types.ObjectId, ref: "Form" },
     case_id: { type: mongoose.Schema.Types.ObjectId, ref: "Case" },
     session_date: { type: Date },
     session_time: { type: Object },

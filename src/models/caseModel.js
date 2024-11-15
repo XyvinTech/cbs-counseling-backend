@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 const caseSchema = mongoose.Schema(
   {
     case_id: { type: String },
-    user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    form_id: { type: mongoose.Schema.Types.ObjectId, ref: "Form" },
     concern_raised: { type: Date },
     referer: { type: [mongoose.Schema.Types.ObjectId], ref: "User" },
     referer_remark: { type: [Object] },
