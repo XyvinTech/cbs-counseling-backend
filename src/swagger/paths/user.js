@@ -500,3 +500,44 @@
  *       400:
  *         description: Error deleting file or file not found
  */
+
+/**
+ * @swagger
+ * /form:
+ *   post:
+ *     summary: Create a new form
+ *     description: Creates a new form by validating and saving the provided data.
+ *     tags:
+ *       - User
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 description: Name of the individual
+ *                 example: "John Doe"
+ *               grNumber:
+ *                 type: string
+ *                 description: GR Number of the individual
+ *                 example: "GR12345"
+ *               referee:
+ *                 type: string
+ *                 description: Referee's name
+ *                 example: "Jane Smith"
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 description: Email address of the individual
+ *                 example: "john.doe@example.com"
+ *     responses:
+ *       200:
+ *         description: Form created successfully
+ *       400:
+ *         description: Invalid input
+ *       500:
+ *         description: Internal server error
+ */
