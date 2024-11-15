@@ -125,3 +125,10 @@ exports.createSessionEntrySchema = Joi.object({
   with_session: Joi.boolean(),
   isEditable: Joi.boolean(),
 });
+
+exports.formSchema = Joi.object({
+  name: Joi.string().required(),
+  grNumber: Joi.string().required(),
+  referee: Joi.string().required(),
+  email: Joi.string().email().required(),
+});

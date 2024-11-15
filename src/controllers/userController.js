@@ -11,6 +11,7 @@ const sendMail = require("../utils/sendMail");
 const Event = require("../models/eventModel");
 const moment = require("moment-timezone");
 const Type = require("../models/typeModel");
+const Form = require("../models/formModel");
 
 // exports.registerUser = async (req, res) => {
 //   try {
@@ -155,7 +156,7 @@ exports.createSession = async (req, res) => {
 
     const sessions = [session._id];
 
-    const count = await Case.countDocuments({isDeleted: false});
+    const count = await Case.countDocuments({ isDeleted: false });
     const case_id = `#CS_${String(count + 1).padStart(2, "0")}`;
 
     const newSession = await Session.findById(session._id)
@@ -622,6 +623,22 @@ exports.markAsRead = async (req, res) => {
     if (!notification)
       return responseHandler(res, 404, "Notification not found");
     return responseHandler(res, 200, "Notification marked as read");
+  } catch (error) {
+    return responseHandler(res, 500, `Internal Server Error ${error.message}`);
+  }
+};
+
+exports.createForm = async (req, res) => {
+  try {
+    const formValidator = validations.formSchema.validate(req.body, {
+      abortEarly: true,
+    });
+    if (formValidator.error) {
+      return responseHandler(res, 400, `Invalid input: ${formValidator.error}`);
+    }
+
+    const form = await Form.create(req.body);
+    return responseHandler(res, 200, "Form created", form);
   } catch (error) {
     return responseHandler(res, 500, `Internal Server Error ${error.message}`);
   }
