@@ -174,9 +174,9 @@ exports.createSession = async (req, res) => {
 
     session.case_id = caseId._id;
     const emailData = {
-      to: req.body.email,
+      to: newSession.form_id.email,
       subject: `Your session requested with Session ID: ${newSession.session_id} and Case ID: ${case_id} for ${newSession.counsellor.name}`,
-      text: `Dear ${req.body.name},\n\nYour appointment request for ${
+      text: `Dear ${newSession.form_id.name},\n\nYour appointment request for ${
         newSession.counsellor.name
       } for ${moment(newSession.session_date).format("DD-MM-YYYY")} at ${
         newSession.session_time.start
@@ -193,11 +193,11 @@ exports.createSession = async (req, res) => {
     };
     const counData = {
       to: newSession.counsellor.email,
-      subject: `You have a new session requested with Session ID: ${newSession.session_id} and Case ID: ${case_id} from ${req.body.name}`,
+      subject: `You have a new session requested with Session ID: ${newSession.session_id} and Case ID: ${case_id} from ${newSession.form_id.name}`,
       text: `Dear ${
         newSession.counsellor.name
       },\n\nYou have received an appointment request from ${
-        req.body.name
+        newSession.form_id.name
       } for ${moment(newSession.session_date).format("DD-MM-YYYY")} at ${
         newSession.session_time.start
       }-${
