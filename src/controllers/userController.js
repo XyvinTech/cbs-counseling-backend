@@ -159,7 +159,8 @@ exports.createSession = async (req, res) => {
     const case_id = `#CS_${String(count + 1).padStart(2, "0")}`;
 
     const newSession = await Session.findById(session._id)
-      .populate("counsellor");
+    .populate("form_id")
+    .populate("counsellor");
 
     const caseId = await Case.create({
       form_id: req.body.form_id,
@@ -222,7 +223,6 @@ exports.rescheduleSession = async (req, res) => {
     if (!session_date && !session_time)
       return responseHandler(res, 400, `Session date & time is required`);
     const session = await Session.findById(id)
-      .populate("user")
       .populate("counsellor")
       .populate("case_id");
     if (!session) return responseHandler(res, 404, "Session not found");
@@ -240,18 +240,10 @@ exports.rescheduleSession = async (req, res) => {
       updatedSession,
       { new: true }
     )
-      .populate("user")
+      .populate("form_id")
       .populate("counsellor");
     if (!rescheduleSession)
       return responseHandler(res, 400, "Session reschedule failed");
-    const data = {
-      user: req.userId,
-      case_id: rescheduleSession.case_id,
-      session_id: rescheduleSession._id,
-      details:
-        "Your session reschedule has been requested. Please wait for approval",
-    };
-    await Notification.create(data);
     const notif_data = {
       user: rescheduleSession.counsellor._id,
       case_id: rescheduleSession.case_id,
@@ -259,10 +251,10 @@ exports.rescheduleSession = async (req, res) => {
       details: "Session reschedule requested",
     };
     const userEmailData = {
-      to: session.user.email,
+      to: form_id.email,
       subject: `Your session with Session ID: ${session.session_id} and Case ID: ${session.case_id.case_id} has been rescheduled`,
       text: `Dear ${
-        session.user.name
+        form_id.name
       },\n\nWe have received your request to reschedule your session with ${
         session.counsellor.name
       }. The session, originally scheduled for ${moment(
@@ -284,7 +276,7 @@ exports.rescheduleSession = async (req, res) => {
       text: `Dear ${
         session.counsellor.name
       },\n\nPlease be informed that the session with ${
-        session.user.name
+        form_id.name
       }, originally scheduled for ${moment(session.session_date).format(
         "DD-MM-YYYY"
       )} at ${session.session_time.start}-${
