@@ -791,12 +791,12 @@ exports.getUserSessions = async (req, res) => {
     };
     if (searchQuery) {
       filter.$or = [
-        { "user.name": { $regex: searchQuery, $options: "i" } },
+        { "form_id.name": { $regex: searchQuery, $options: "i" } },
         { "counsellor.name": { $regex: searchQuery, $options: "i" } },
       ];
     }
     const sessions = await Session.find(filter)
-      .populate("user")
+      .populate("form_id")
       .populate("counsellor")
       .skip(skipCount)
       .limit(limit)
@@ -853,12 +853,12 @@ exports.getCounsellorSessions = async (req, res) => {
     };
     if (searchQuery) {
       filter.$or = [
-        { "user.name": { $regex: searchQuery, $options: "i" } },
+        { "form_id.name": { $regex: searchQuery, $options: "i" } },
         { "counsellor.name": { $regex: searchQuery, $options: "i" } },
       ];
     }
     const sessions = await Session.find(filter)
-      .populate("user")
+      .populate("form_id")
       .populate("counsellor")
       .skip(skipCount)
       .limit(limit)
@@ -870,7 +870,7 @@ exports.getCounsellorSessions = async (req, res) => {
         session_id: session.session_id,
         session_date: session.session_date,
         session_time: session.session_time,
-        student_name: session.user.name,
+        student_name: session.form_id.name,
         counsellor_type: session.type,
         status: session.status,
       };
@@ -899,16 +899,16 @@ exports.getCounsellorCases = async (req, res) => {
       "session_ids.counsellor": userId,
     };
     if (searchQuery) {
-      filter.$or = [{ "user.name": { $regex: searchQuery, $options: "i" } }];
+      filter.$or = [{ "form_id.name": { $regex: searchQuery, $options: "i" } }];
     }
-    const cases = await Case.find(filter).populate("user");
+    const cases = await Case.find(filter).populate("form_id");
     const mappedData = cases.map((case_) => {
       return {
         id: case_.id,
         case_id: case_.case_id,
         case_date: case_.createdAt,
         case_time: case_.createdAt,
-        student_name: case_.user.name,
+        student_name: case_.form_id.name,
         status: case_.status,
       };
     });
