@@ -1131,7 +1131,7 @@ exports.getSession = async (req, res) => {
   try {
     const { id } = req.params;
     const session = await Session.findById(id)
-      .populate("user")
+      .populate("form_id")
       .populate("counsellor")
       .populate("case_id");
     if (session) {
