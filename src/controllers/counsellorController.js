@@ -369,7 +369,7 @@ exports.addEntry = async (req, res) => {
       date,
       time,
       session_id,
-      user_id,
+      form_id,
       concern_raised,
       interactions,
       reason_for_closing,
@@ -393,7 +393,7 @@ exports.addEntry = async (req, res) => {
     const checkSession = await Session.findById(session_id)
       .populate("case_id")
       .populate("counsellor")
-      .populate("user");
+      .populate("form_id");
 
     //? Handle isEditable for save button
     if (isEditable) {
@@ -454,7 +454,7 @@ exports.addEntry = async (req, res) => {
         refCase.session_ids.length + 1
       ).padStart(2, "0")}`;
       const data = {
-        user: user_id,
+        form_id: form_id,
         session_date: date,
         session_time: time,
         type: checkSession.type,
@@ -485,12 +485,12 @@ exports.addEntry = async (req, res) => {
 
       const newSession = await Session.findById(session._id)
         .populate("counsellor")
-        .populate("user");
+        .populate("form_id");
 
       const emailData = {
-        to: newSession.user.email,
+        to: newSession.form_id.email,
         subject: `Your session requested with Session ID: ${newSession.session_id} and Case ID: ${upCase.case_id} for ${newSession.counsellor.name}`,
-        text: `Dear ${newSession.user.name},\n\nYour appointment request for ${
+        text: `Dear ${newSession.form_id.name},\n\nYour appointment request for ${
           newSession.counsellor.name
         } for ${moment(newSession.session_date).format("DD-MM-YYYY")} at ${
           newSession.session_time.start
@@ -500,13 +500,6 @@ exports.addEntry = async (req, res) => {
       };
 
       await sendMail(emailData);
-      const notifData = {
-        user: req.userId,
-        case_id: upCase._id,
-        session: session._id,
-        details: "Your session has been requested. Please wait for approval",
-      };
-      await Notification.create(notifData);
       const notif_data = {
         user: session.counsellor._id,
         case_id: upCase._id,
@@ -515,11 +508,11 @@ exports.addEntry = async (req, res) => {
       };
       const counData = {
         to: newSession.counsellor.email,
-        subject: `You have a new session requested with Session ID: ${newSession.session_id} and Case ID: ${upCase.case_id} from ${newSession.user.name}`,
+        subject: `You have a new session requested with Session ID: ${newSession.session_id} and Case ID: ${upCase.case_id} from ${newSession.form_id.name}`,
         text: `Dear ${
           newSession.counsellor.name
         },\n\nYou have received an appointment request from ${
-          newSession.user.name
+          newSession.form_id.name
         } for ${moment(session.session_date).format("DD-MM-YYYY")} at ${
           newSession.session_time.start
         }-${
@@ -597,7 +590,7 @@ exports.addEntry = async (req, res) => {
       fetchCase.session_ids.length + 1
     ).padStart(2, "0")}`;
     const sessionData = {
-      user: user_id,
+      form_id: form_id,
       session_date: date,
       type: checkSession.type,
       session_time: time,
@@ -626,13 +619,13 @@ exports.addEntry = async (req, res) => {
     );
 
     const resSession = await Session.findById(newSessionRes._id)
-      .populate("user")
+      .populate("form_id")
       .populate("counsellor");
 
     const emailData = {
-      to: resSession.user.email,
+      to: resSession.form_id.email,
       subject: `Your session requested with Session ID: ${resSession.session_id} and Case ID: ${upCase.case_id} for ${resSession.counsellor.name}`,
-      text: `Dear ${resSession.user.name},\n\nYour appointment request for ${
+      text: `Dear ${resSession.form_id.name},\n\nYour appointment request for ${
         resSession.counsellor.name
       } for ${moment(resSession.session_date).format("DD-MM-YYYY")} at ${
         resSession.session_time.start
@@ -642,13 +635,7 @@ exports.addEntry = async (req, res) => {
     };
 
     await sendMail(emailData);
-    const notifData = {
-      user: req.userId,
-      case_id: upCase._id,
-      session: resSession._id,
-      details: "Your session has been requested. Please wait for approval",
-    };
-    await Notification.create(notifData);
+
     const notif_data = {
       user: resSession.counsellor._id,
       case_id: upCase._id,
@@ -658,11 +645,11 @@ exports.addEntry = async (req, res) => {
 
     const counData = {
       to: resSession.counsellor.email,
-      subject: `You have a new session requested with Session ID: ${resSession.session_id} and Case ID: ${upCase.case_id} from ${resSession.user.name}`,
+      subject: `You have a new session requested with Session ID: ${resSession.session_id} and Case ID: ${upCase.case_id} from ${resSession.form_id.name}`,
       text: `Dear ${
         resSession.counsellor.name
       },\n\nYou have received an appointment request from ${
-        resSession.user.name
+        resSession.form_id.name
       } for ${moment(resSession.session_date).format("DD-MM-YYYY")} at ${
         resSession.session_time.start
       }-${
