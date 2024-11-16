@@ -921,12 +921,12 @@ exports.cancelSession = async (req, res) => {
     const get_session = await Session.findById(id)
       .populate("case_id")
       .populate("counsellor")
-      .populate("user");
+      .populate("form_id");
     const emailData = {
-      to: session.user_email,
+      to: get_session.form_id.email,
       subject: `Your session with Session ID: ${get_session.session_id} and Case ID: ${get_session.case_id.case_id} has been canceled by ${get_session.counsellor.name}`,
       text: `Dear ${
-        get_session.user.name
+        get_session.form_id.name
       },\n\nWe regret to inform you that your appointment with ${
         get_session.counsellor.name
       }, originally scheduled for ${moment(get_session.session_date).format(
