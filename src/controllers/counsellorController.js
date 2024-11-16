@@ -282,11 +282,11 @@ exports.acceptSession = async (req, res) => {
       },
       { new: true }
     )
-      .populate("user")
+      .populate("form_id")
       .populate("case_id")
       .populate("counsellor");
     const session = await Session.findById(id)
-      .populate("user")
+      .populate("form_id")
       .populate("case_id")
       .populate("counsellor");
     await Case.findByIdAndUpdate(
@@ -301,16 +301,11 @@ exports.acceptSession = async (req, res) => {
       details: `Session with ${updatedSession.session_id} is accepted`,
     };
     await Notification.create(data);
-    const notif_data = {
-      user: updatedSession.user._id,
-      case_id: updatedSession.case_id._id,
-      session: updatedSession._id,
-      details: `Your session with ${updatedSession.session_id} is accepted`,
-    };
+
     const emailDataForUserAccepted = {
-      to: session.user.email,
+      to: session.form_id.email,
       subject: `Your session with Session ID: ${session.session_id} has been accepted`,
-      text: `Dear ${session.user.name},
+      text: `Dear ${session.form_id.name},
     
     Your appointment request for ${session.counsellor.name} on ${moment(
         session.session_date
@@ -330,21 +325,20 @@ exports.acceptSession = async (req, res) => {
     };
 
     await sendMail(emailDataForUserAccepted);
-    await Notification.create(notif_data);
     const emailDataForCounselorAccepted = {
       to: session.counsellor.email,
       subject: `Session with Session ID: ${session.session_id} has been accepted`,
       text: `Dear ${session.counsellor.name},
     
-    The session request from ${session.user.name} has been accepted. 
+    The session request from ${session.form_id.name} has been accepted. 
     
     Here are the details of the session:
     - **Session ID**: ${session.session_id}
     - **Case ID**: ${session.case_id.case_id}
     - **Date**: ${moment(session.session_date).format("DD-MM-YYYY")}
     - **Time**: ${session.session_time.start}-${session.session_time.end}
-    - **User**: ${session.user.name}
-    - **User Email**: ${session.user.email}
+    - **User**: ${session.form_id.name}
+    - **User Email**: ${session.form_id.email}
     
     Please prepare for the session accordingly.
     
