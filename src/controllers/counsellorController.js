@@ -764,7 +764,7 @@ exports.rescheduleSession = async (req, res) => {
     if (!session_date && !session_time)
       return responseHandler(res, 400, `Session date & time is required`);
     const session = await Session.findById(id)
-      .populate("user")
+      .populate("form_id")
       .populate("case_id")
       .populate("counsellor");
     if (!session) return responseHandler(res, 404, "Session not found");
@@ -792,18 +792,12 @@ exports.rescheduleSession = async (req, res) => {
       details: "Your session is rescheduled.",
     };
     await Notification.create(data);
-    const notif_data = {
-      user: session.user,
-      caseId: session.case_id._id,
-      session: session._id,
-      details: "Session rescheduled.",
-    };
 
     const emailData = {
-      to: session.user.email,
+      to: session.form_id.email,
       subject: `Your session with Session ID: ${session.session_id} and Case ID: ${session.case_id.case_id} has been rescheduled by ${session.counsellor.name}`,
       text: `Dear ${
-        session.user.name
+        session.form_id.name
       },\n\nWe wanted to inform you that your appointment with ${
         session.counsellor.name
       }, originally scheduled for ${moment(session.session_date).format(
@@ -818,7 +812,6 @@ exports.rescheduleSession = async (req, res) => {
     };
 
     await sendMail(emailData);
-    await Notification.create(notif_data);
     const counData = {
       to: session.counsellor.email,
       subject: "Session Reschedule",
