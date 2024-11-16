@@ -525,7 +525,7 @@ exports.addEntry = async (req, res) => {
       return responseHandler(res, 201, "Session created successfully", session);
     } else if (refer) {
       const counsellor = await User.findById(refer);
-      const fetchCase = await Case.findById(id).populate("user");
+      const fetchCase = await Case.findById(id).populate("form_id");
       let updated_refer = [];
       if (fetchCase.referer === null) {
         updated_refer.push(refer);
