@@ -703,12 +703,12 @@ exports.getCaseSessions = async (req, res) => {
   try {
     const { caseId } = req.params;
     const sessions = await Session.find({ case_id: caseId })
-      .populate("user")
+      .populate("form_id")
       .populate("counsellor");
     const mappedData = sessions.map((session) => {
       return {
         ...session._doc,
-        user_name: session.user.name,
+        user_name: session.form_id.name,
         counsellor_name: session.counsellor.name,
       };
     });
