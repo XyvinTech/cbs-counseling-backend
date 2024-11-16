@@ -729,10 +729,10 @@ exports.listController = async (req, res) => {
     } else if (type === "cases") {
       const filter = {};
       if (searchQuery) {
-        filter.$or = [{ "user.name": { $regex: searchQuery, $options: "i" } }];
+        filter.$or = [{ "form_id.name": { $regex: searchQuery, $options: "i" } }];
       }
       const sessions = await Case.find(filter)
-        .populate("user")
+        .populate("form_id")
         .populate({
           path: "session_ids",
           populate: {
@@ -746,7 +746,7 @@ exports.listController = async (req, res) => {
       const mappedData = sessions.map((session) => {
         return {
           ...session,
-          user_name: session?.user?.name,
+          user_name: session?.form_id?.name,
           counsellor_name: session?.session_ids[0]?.counsellor?.name,
         };
       });
