@@ -135,12 +135,12 @@ exports.listController = async (req, res) => {
       }
       if (searchQuery) {
         filter.$or = [
-          { "user.name": { $regex: searchQuery, $options: "i" } },
+          { "form_id.name": { $regex: searchQuery, $options: "i" } },
           { "counsellor.name": { $regex: searchQuery, $options: "i" } },
         ];
       }
       const sessions = await Session.find(filter)
-        .populate("user")
+        .populate("form_id")
         .populate("counsellor")
         .populate("case_id")
         .skip(skipCount)
@@ -151,7 +151,7 @@ exports.listController = async (req, res) => {
       const mappedData = sessions.map((item) => {
         return {
           ...item,
-          user_name: item.user.name,
+          user_name: item.form_id.name,
           counsellor_name: item.counsellor.name,
           caseid: item.case_id.case_id,
         };
@@ -180,17 +180,17 @@ exports.listController = async (req, res) => {
         filter.status = status;
       }
       if (searchQuery) {
-        filter.$or = [{ "user.name": { $regex: searchQuery, $options: "i" } }];
+        filter.$or = [{ "form_id.name": { $regex: searchQuery, $options: "i" } }];
       }
 
       const cases = await Case.find(filter)
         .populate("session_ids")
-        .populate("user");
+        .populate("form_id");
       if (cases.length > 0) {
         const mappedData = cases.map((item) => {
           return {
             ...item._doc,
-            user_name: item.user.name,
+            user_name: item.form_id.name,
             session_time: item.session_ids.length
               ? item.session_ids[item.session_ids.length - 1].session_time
               : null,
@@ -239,15 +239,15 @@ exports.listController = async (req, res) => {
         filter.status = status;
       }
       if (searchQuery) {
-        filter.$or = [{ "user.name": { $regex: searchQuery, $options: "i" } }];
+        filter.$or = [{ "form_id.name": { $regex: searchQuery, $options: "i" } }];
       }
       const sessions = await Case.find(filter)
         .populate("session_ids")
-        .populate("user");
+        .populate("form_id");
       const mappedData = sessions.map((item) => {
         return {
           ...item._doc,
-          user_name: item.user.name,
+          user_name: item.form_id.name,
           couselling_type: item.session_ids[item.session_ids.length - 1].type,
           description:
             item.session_ids[item.session_ids.length - 1].description,
