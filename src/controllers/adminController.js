@@ -960,7 +960,7 @@ exports.getDashboard = async (req, res) => {
     const filter = {};
     if (searchQuery) {
       filter.$or = [
-        { "user.name": { $regex: searchQuery, $options: "i" } },
+        { "form_id.name": { $regex: searchQuery, $options: "i" } },
         { "counsellor.name": { $regex: searchQuery, $options: "i" } },
       ];
     }
@@ -968,7 +968,7 @@ exports.getDashboard = async (req, res) => {
       filter.status = status;
     }
     const session_list = await Session.find(filter)
-      .populate("user")
+      .populate("form_id")
       .populate("counsellor")
       .skip(skipCount)
       .limit(limit)
@@ -978,7 +978,7 @@ exports.getDashboard = async (req, res) => {
     const mappedData = session_list.map((session) => {
       return {
         ...session,
-        user_name: session.user ? session.user.name : null,
+        user_name: session.user ? session.form_id.name : null,
         counsellor_name: session.counsellor ? session.counsellor.name : null,
       };
     });
