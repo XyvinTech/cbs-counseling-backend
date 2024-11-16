@@ -961,7 +961,7 @@ exports.getSessionsExcel = async (req, res) => {
 
     const sessions = await Session.find()
       .populate("case_id")
-      .populate("user")
+      .populate("form_id")
       .populate("counsellor");
     const headers = [
       "Case ID",
@@ -975,7 +975,7 @@ exports.getSessionsExcel = async (req, res) => {
       return {
         case_id: session.case_id.case_id,
         session_id: session.session_id,
-        student_name: session.user.name,
+        student_name: session.form_id.name,
         session_date: moment(session.session_date).format("DD-MM-YYYY"),
         session_time: session.session_time,
         status: session.status,
