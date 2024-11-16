@@ -113,7 +113,7 @@ exports.createSessionEntrySchema = Joi.object({
     start: Joi.string().regex(/^([0-9]{2}):([0-9]{2})$/),
     end: Joi.string().regex(/^([0-9]{2}):([0-9]{2})$/),
   }),
-  user_id: Joi.string().required(),
+  form_id: Joi.string().required(),
   session_id: Joi.string().required(),
   close: Joi.boolean(),
   refer: Joi.string(),
