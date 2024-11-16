@@ -978,7 +978,7 @@ exports.getDashboard = async (req, res) => {
     const mappedData = session_list.map((session) => {
       return {
         ...session,
-        user_name: session.user ? session.form_id.name : null,
+        user_name: session.form_id ? session.form_id.name : null,
         counsellor_name: session.counsellor ? session.counsellor.name : null,
       };
     });
