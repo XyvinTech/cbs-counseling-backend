@@ -131,7 +131,7 @@ exports.formSchema = Joi.object({
   name: Joi.string().required(),
   grNumber: Joi.string().required(),
   referee: Joi.string().required(),
-  refereeName: Joi.string().required(),
+  refereeName: Joi.string(),
   email: Joi.string().email().required(),
   class: Joi.string().required(),
 });
