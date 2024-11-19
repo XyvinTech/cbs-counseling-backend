@@ -8,6 +8,7 @@ const formSchema = mongoose.Schema(
       type: String,
       enum: ["student", "parent", "teacher"],
     },
+    refereeName: { type: String },
     email: { type: String },
     class: { type: String },
   },
