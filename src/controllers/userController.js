@@ -77,11 +77,11 @@ exports.loginUser = async (req, res) => {
 
 exports.getUser = async (req, res) => {
   try {
-    const id = req.userId;
-    if (!id) {
+    const gr = req.params.gr;
+    if (!gr) {
       return responseHandler(res, 400, "User ID is required");
     }
-    const findStudent = await User.findById(id);
+    const findStudent = await User.findOne({ StudentReferencesCode: gr });
     if (!findStudent) {
       return responseHandler(res, 404, "User not found");
     }

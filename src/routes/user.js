@@ -6,6 +6,7 @@ const userRoute = express.Router();
 // userRoute.post("/register", userController.registerUser);
 userRoute.post("/login", userController.loginUser);
 userRoute.post("/form", userController.createForm);
+userRoute.get("/student/:gr", userController.getUser);
 
 // userRoute.use(authVerify);
 userRoute.route("/").get(userController.getUser);
