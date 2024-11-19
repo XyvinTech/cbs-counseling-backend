@@ -152,7 +152,7 @@ exports.listController = async (req, res) => {
         return {
           ...item,
           user_name: item.form_id.name,
-          refereeName: item.form_id.refereeName,
+          referee: item.form_id.referee,
           counsellor_name: item.counsellor.name,
           caseid: item.case_id.case_id,
         };
