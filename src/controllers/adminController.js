@@ -805,8 +805,8 @@ exports.getUserSessions = async (req, res) => {
 
     const pipeline = [
       { $sort: { createdAt: -1 } },
-      { $skip: skipCount }, 
-      { $limit: parseInt(limit) }, 
+      { $skip: skipCount },
+      { $limit: parseInt(limit) },
       {
         $lookup: {
           from: "forms",
@@ -856,7 +856,6 @@ exports.getUserSessions = async (req, res) => {
     return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
   }
 };
-
 
 exports.getUser = async (req, res) => {
   try {
@@ -932,7 +931,10 @@ exports.getCounsellorCases = async (req, res) => {
     if (searchQuery) {
       filter.$or = [{ "form_id.name": { $regex: searchQuery, $options: "i" } }];
     }
-    const cases = await Case.find(filter).populate("form_id");
+    const cases = await Case.find(filter)
+      .populate("form_id")
+      .populate("session_ids")
+      .lean();
     const mappedData = cases.map((case_) => {
       return {
         id: case_.id,
