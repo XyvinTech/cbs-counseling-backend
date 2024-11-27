@@ -837,7 +837,7 @@ exports.getUserSessions = async (req, res) => {
           session_time: 1,
           name: "$form_id.name",
           counsellor_name: "$counsellor.name",
-          counsellor_type: "$counsellor.type",
+          counsellor_type: "$counsellor.counsellorType",
         },
       },
     ];
