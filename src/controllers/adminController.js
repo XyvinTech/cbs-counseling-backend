@@ -820,7 +820,7 @@ exports.getUserSessions = async (req, res) => {
       { $match: match }, // Match filter
       {
         $lookup: {
-          from: "counsellors", // Collection name for `counsellor`
+          from: "users", // Collection name for `counsellor`
           localField: "counsellor",
           foreignField: "_id",
           as: "counsellor",
