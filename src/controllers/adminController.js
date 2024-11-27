@@ -942,7 +942,6 @@ exports.getCounsellorCases = async (req, res) => {
       {
         $match: {
           "sessions.counsellor": new mongoose.Types.ObjectId(userId),
-          isDeleted: false,
         },
       },
       ...(searchQuery
