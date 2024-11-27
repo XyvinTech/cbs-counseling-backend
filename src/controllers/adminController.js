@@ -786,6 +786,7 @@ exports.getUserSessions = async (req, res) => {
   try {
     const { userId } = req.params;
     const { page, searchQuery } = req.query;
+    const skipCount = 10 * (page - 1);
     const filter = {
       user: userId,
     };
@@ -848,6 +849,7 @@ exports.getCounsellorSessions = async (req, res) => {
   try {
     const userId = req.params.counsellorId;
     const { page, searchQuery } = req.query;
+    const skipCount = 10 * (page - 1);
     const filter = {
       counsellor: userId,
     };
