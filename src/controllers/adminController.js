@@ -944,19 +944,19 @@ exports.getCounsellorCases = async (req, res) => {
           "sessions.counsellor": new mongoose.Types.ObjectId(userId),
         },
       },
+      {
+        $lookup: {
+          from: "forms",
+          localField: "form_id",
+          foreignField: "_id",
+          as: "form",
+        },
+      },
+      {
+        $unwind: { path: "$form", preserveNullAndEmptyArrays: false }, 
+      },
       ...(searchQuery
         ? [
-            {
-              $lookup: {
-                from: "forms",
-                localField: "form_id",
-                foreignField: "_id",
-                as: "form",
-              },
-            },
-            {
-              $unwind: { path: "$form", preserveNullAndEmptyArrays: true },
-            },
             {
               $match: {
                 "form.name": { $regex: searchQuery, $options: "i" },
@@ -965,7 +965,7 @@ exports.getCounsellorCases = async (req, res) => {
           ]
         : []),
       { $sort: { createdAt: -1 } },
-      { $skip: skipCount },
+      { $skip: skipCount }, 
       { $limit: parseInt(limit) },
       {
         $project: {
@@ -996,19 +996,19 @@ exports.getCounsellorCases = async (req, res) => {
           isDeleted: false,
         },
       },
+      {
+        $lookup: {
+          from: "forms",
+          localField: "form_id",
+          foreignField: "_id",
+          as: "form",
+        },
+      },
+      {
+        $unwind: { path: "$form", preserveNullAndEmptyArrays: false },
+      },
       ...(searchQuery
         ? [
-            {
-              $lookup: {
-                from: "forms",
-                localField: "form_id",
-                foreignField: "_id",
-                as: "form",
-              },
-            },
-            {
-              $unwind: { path: "$form", preserveNullAndEmptyArrays: true },
-            },
             {
               $match: {
                 "form.name": { $regex: searchQuery, $options: "i" },
