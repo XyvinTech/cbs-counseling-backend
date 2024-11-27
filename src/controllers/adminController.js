@@ -924,36 +924,69 @@ exports.getCounsellorSessions = async (req, res) => {
 exports.getCounsellorCases = async (req, res) => {
   try {
     const userId = req.params.counsellorId;
-    const { page, searchQuery } = req.query;
-    const filter = {
+    const { page = 1, searchQuery = "", limit = 10 } = req.query;
+
+    const skipCount = (page - 1) * limit;
+
+    const match = {
       "session_ids.counsellor": userId,
     };
+
     if (searchQuery) {
-      filter.$or = [{ "form_id.name": { $regex: searchQuery, $options: "i" } }];
+      match.$or = [{ "form_id.name": { $regex: searchQuery, $options: "i" } }];
     }
-    const cases = await Case.find(filter)
-      .populate("form_id")
-      .populate("session_ids")
-      .lean();
-    const mappedData = cases.map((case_) => {
-      return {
-        id: case_.id,
-        case_id: case_.case_id,
-        case_date: case_.createdAt,
-        case_time: case_.createdAt,
-        student_name: case_.form_id.name,
-        status: case_.status,
-      };
-    });
+
+    const pipeline = [
+      { $sort: { createdAt: -1 } }, 
+      { $skip: skipCount }, 
+      { $limit: parseInt(limit) }, 
+      {
+        $lookup: {
+          from: "forms",
+          localField: "form_id",
+          foreignField: "_id",
+          as: "form_id",
+        },
+      },
+      {
+        $lookup: {
+          from: "sessions",
+          localField: "session_ids",
+          foreignField: "_id",
+          as: "session_ids",
+        },
+      },
+      { $match: match }, 
+      {
+        $unwind: { path: "$form_id", preserveNullAndEmptyArrays: true },
+      },
+      {
+        $project: {
+          id: "$_id",
+          case_id: 1,
+          case_date: "$createdAt",
+          case_time: "$createdAt",
+          student_name: "$form_id.name",
+          status: 1,
+        },
+      },
+    ];
+
+    const cases = await Case.aggregate(pipeline);
+
+    const totalCountPipeline = [{ $match: match }, { $count: "totalCount" }];
+    const totalCountResult = await Case.aggregate(totalCountPipeline);
+    const totalCount = totalCountResult[0]?.totalCount || 0;
+
     if (cases.length > 0) {
-      const totalCount = await Case.countDocuments(filter);
-      return responseHandler(res, 200, "Cases found", mappedData, totalCount);
+      return responseHandler(res, 200, "Cases found", cases, totalCount);
     }
-    return responseHandler(res, 404, "No Cases found", mappedData);
+    return responseHandler(res, 404, "No Cases found", []);
   } catch (error) {
-    return responseHandler(res, 500, `Internal Server Error ${error.message}`);
+    return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
   }
 };
+
 
 exports.getAllCounsellors = async (req, res) => {
   try {
