@@ -787,48 +787,88 @@ exports.listController = async (req, res) => {
 exports.getUserSessions = async (req, res) => {
   try {
     const { userId } = req.params;
-    const { page, searchQuery, limit = 10 } = req.query;
-    const skipCount = 10 * (page - 1);
-    const filter = {};
+    const { page = 1, searchQuery, limit = 10 } = req.query;
+    const skipCount = limit * (page - 1);
+
+    const pipeline = [];
+
     if (userId) {
-      filter["form_id.grNumber"] = userId;
+      pipeline.push({
+        $match: { "form_id.grNumber": userId },
+      });
     }
+
     if (searchQuery) {
-      filter.$or = [
-        { "form_id.name": { $regex: searchQuery, $options: "i" } },
-        { "counsellor.name": { $regex: searchQuery, $options: "i" } },
-      ];
+      pipeline.push({
+        $match: {
+          $or: [
+            { "form_id.name": { $regex: searchQuery, $options: "i" } },
+            { "counsellor.name": { $regex: searchQuery, $options: "i" } },
+          ],
+        },
+      });
     }
-    const sessions = await Session.find(filter)
-      .populate("form_id")
-      .populate("counsellor")
-      .skip(skipCount)
-      .limit(limit)
-      .sort({ createdAt: -1 })
-      .lean();
-    const mappedData = sessions.map((session) => {
-      return {
-        id: session.id,
-        session_date: session.session_date,
-        session_time: session.session_time,
-        name: session.name,
-        counsellor_name: session.counsellor.name,
-        counsellor_type: session.type,
-      };
+
+    pipeline.push({
+      $lookup: {
+        from: "forms", 
+        localField: "form_id",
+        foreignField: "_id",
+        as: "form",
+      },
     });
+
+    pipeline.push({
+      $unwind: { path: "$form", preserveNullAndEmptyArrays: true },
+    });
+
+    pipeline.push({
+      $lookup: {
+        from: "counsellors",
+        localField: "counsellor",
+        foreignField: "_id",
+        as: "counsellor",
+      },
+    });
+
+    pipeline.push({
+      $unwind: { path: "$counsellor", preserveNullAndEmptyArrays: true },
+    });
+
+    pipeline.push({
+      $sort: { createdAt: -1 },
+    });
+
+    pipeline.push({ $skip: skipCount });
+    pipeline.push({ $limit: parseInt(limit) });
+
+    pipeline.push({
+      $project: {
+        id: "$_id",
+        session_date: "$session_date",
+        session_time: "$session_time",
+        name: "$form.name",
+        counsellor_name: "$counsellor.name",
+        counsellor_type: "$counsellor.type",
+      },
+    });
+
+    const sessions = await Session.aggregate(pipeline);
+
+    const totalCountPipeline = [...pipeline];
+    totalCountPipeline.pop();
+    totalCountPipeline.pop();
+    totalCountPipeline.push({ $count: "totalCount" });
+
+    const totalCountResult = await Session.aggregate(totalCountPipeline);
+    const totalCount = totalCountResult[0]?.totalCount || 0;
+
     if (sessions.length > 0) {
-      const totalCount = await Session.countDocuments(filter);
-      return responseHandler(
-        res,
-        200,
-        "Sessions found",
-        mappedData,
-        totalCount
-      );
+      return responseHandler(res, 200, "Sessions found", sessions, totalCount);
     }
-    return responseHandler(res, 404, "No Sessions found", mappedData);
+    return responseHandler(res, 404, "No Sessions found", []);
   } catch (error) {
-    return responseHandler(res, 500, `Internal Server Error ${error.message}`);
+    return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
   }
 };
 
