@@ -992,7 +992,7 @@ exports.getCounsellorCases = async (req, res) => {
       },
       {
         $match: {
-          "sessions.counsellor": mongoose.Types.ObjectId(userId),
+          "sessions.counsellor": new mongoose.Types.ObjectId(userId),
           isDeleted: false,
         },
       },
