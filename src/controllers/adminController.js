@@ -787,79 +787,66 @@ exports.listController = async (req, res) => {
 exports.getUserSessions = async (req, res) => {
   try {
     const { userId } = req.params;
-    const { page = 1, searchQuery, limit = 10 } = req.query;
-    const skipCount = limit * (page - 1);
+    const { page = 1, searchQuery = "", limit = 10 } = req.query;
 
-    const pipeline = [];
+    const skipCount = (page - 1) * limit;
 
+    // Base match filter
+    const match = {};
     if (userId) {
-      pipeline.push({
-        $match: { "form_id.grNumber": userId },
-      });
+      match["form_id.grNumber"] = userId;
     }
 
     if (searchQuery) {
-      pipeline.push({
-        $match: {
-          $or: [
-            { "form_id.name": { $regex: searchQuery, $options: "i" } },
-            { "counsellor.name": { $regex: searchQuery, $options: "i" } },
-          ],
-        },
-      });
+      match.$or = [
+        { "form_id.name": { $regex: searchQuery, $options: "i" } },
+        { "counsellor.name": { $regex: searchQuery, $options: "i" } },
+      ];
     }
 
-    pipeline.push({
-      $lookup: {
-        from: "forms", 
-        localField: "form_id",
-        foreignField: "_id",
-        as: "form",
+    // Aggregation pipeline
+    const pipeline = [
+      { $sort: { createdAt: -1 } }, // Sort by creation date
+      { $skip: skipCount }, // Pagination: skip
+      { $limit: parseInt(limit) }, // Pagination: limit
+      {
+        $lookup: {
+          from: "forms", // Collection name for `form_id`
+          localField: "form_id",
+          foreignField: "_id",
+          as: "form_id",
+        },
       },
-    });
-
-    pipeline.push({
-      $unwind: { path: "$form", preserveNullAndEmptyArrays: true },
-    });
-
-    pipeline.push({
-      $lookup: {
-        from: "counsellors",
-        localField: "counsellor",
-        foreignField: "_id",
-        as: "counsellor",
+      { $match: match }, // Match filter
+      {
+        $lookup: {
+          from: "counsellors", // Collection name for `counsellor`
+          localField: "counsellor",
+          foreignField: "_id",
+          as: "counsellor",
+        },
       },
-    });
-
-    pipeline.push({
-      $unwind: { path: "$counsellor", preserveNullAndEmptyArrays: true },
-    });
-
-    pipeline.push({
-      $sort: { createdAt: -1 },
-    });
-
-    pipeline.push({ $skip: skipCount });
-    pipeline.push({ $limit: parseInt(limit) });
-
-    pipeline.push({
-      $project: {
-        id: "$_id",
-        session_date: "$session_date",
-        session_time: "$session_time",
-        name: "$form.name",
-        counsellor_name: "$counsellor.name",
-        counsellor_type: "$counsellor.type",
+      {
+        $unwind: { path: "$form_id", preserveNullAndEmptyArrays: true },
       },
-    });
+      {
+        $unwind: { path: "$counsellor", preserveNullAndEmptyArrays: true },
+      },
+      {
+        $project: {
+          id: "$_id",
+          session_date: 1,
+          session_time: 1,
+          name: "$form_id.name",
+          counsellor_name: "$counsellor.name",
+          counsellor_type: "$counsellor.type",
+        },
+      },
+    ];
 
     const sessions = await Session.aggregate(pipeline);
 
-    const totalCountPipeline = [...pipeline];
-    totalCountPipeline.pop();
-    totalCountPipeline.pop();
-    totalCountPipeline.push({ $count: "totalCount" });
-
+    const totalCountPipeline = [{ $match: match }, { $count: "totalCount" }];
     const totalCountResult = await Session.aggregate(totalCountPipeline);
     const totalCount = totalCountResult[0]?.totalCount || 0;
 
@@ -871,6 +858,7 @@ exports.getUserSessions = async (req, res) => {
     return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
   }
 };
+
 
 exports.getUser = async (req, res) => {
   try {
