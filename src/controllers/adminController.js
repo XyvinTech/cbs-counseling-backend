@@ -791,7 +791,6 @@ exports.getUserSessions = async (req, res) => {
 
     const skipCount = (page - 1) * limit;
 
-    // Base match filter
     const match = {};
     if (userId) {
       match["form_id.grNumber"] = userId;
@@ -804,23 +803,22 @@ exports.getUserSessions = async (req, res) => {
       ];
     }
 
-    // Aggregation pipeline
     const pipeline = [
-      { $sort: { createdAt: -1 } }, // Sort by creation date
-      { $skip: skipCount }, // Pagination: skip
-      { $limit: parseInt(limit) }, // Pagination: limit
+      { $sort: { createdAt: -1 } },
+      { $skip: skipCount }, 
+      { $limit: parseInt(limit) }, 
       {
         $lookup: {
-          from: "forms", // Collection name for `form_id`
+          from: "forms",
           localField: "form_id",
           foreignField: "_id",
           as: "form_id",
         },
       },
-      { $match: match }, // Match filter
+      { $match: match },
       {
         $lookup: {
-          from: "users", // Collection name for `counsellor`
+          from: "users",
           localField: "counsellor",
           foreignField: "_id",
           as: "counsellor",
