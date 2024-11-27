@@ -16,7 +16,9 @@ const { generateRandomPassword } = require("../utils/generateRandomPassword");
 const sendMail = require("../utils/sendMail");
 const { generateOTP } = require("../utils/generateOTP");
 const Notification = require("../models/notificationModel");
+const mongoose = require("mongoose");
 const uploadDir = "C:/cbs_school_files/";
+
 exports.loginAdmin = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -928,45 +930,51 @@ exports.getCounsellorCases = async (req, res) => {
 
     const skipCount = (page - 1) * limit;
 
-    const match = {
-      "session_ids.counsellor": userId,
-    };
-
-    if (searchQuery) {
-      match.$or = [{ "form_id.name": { $regex: searchQuery, $options: "i" } }];
-    }
-
     const pipeline = [
-      { $sort: { createdAt: -1 } }, 
-      { $skip: skipCount }, 
-      { $limit: parseInt(limit) }, 
       {
         $lookup: {
-          from: "forms",
-          localField: "form_id",
-          foreignField: "_id",
-          as: "form_id",
-        },
-      },
-      {
-        $lookup: {
-          from: "sessions",
+          from: "sessions", 
           localField: "session_ids",
           foreignField: "_id",
-          as: "session_ids",
+          as: "sessions",
         },
       },
-      { $match: match }, 
       {
-        $unwind: { path: "$form_id", preserveNullAndEmptyArrays: true },
+        $match: {
+          "sessions.counsellor": mongoose.Types.ObjectId(userId),
+          isDeleted: false,
+        },
       },
+      ...(searchQuery
+        ? [
+            {
+              $lookup: {
+                from: "forms",
+                localField: "form_id",
+                foreignField: "_id",
+                as: "form",
+              },
+            },
+            {
+              $unwind: { path: "$form", preserveNullAndEmptyArrays: true },
+            },
+            {
+              $match: {
+                "form.name": { $regex: searchQuery, $options: "i" },
+              },
+            },
+          ]
+        : []),
+      { $sort: { createdAt: -1 } },
+      { $skip: skipCount },
+      { $limit: parseInt(limit) },
       {
         $project: {
           id: "$_id",
           case_id: 1,
           case_date: "$createdAt",
           case_time: "$createdAt",
-          student_name: "$form_id.name",
+          student_name: "$form.name",
           status: 1,
         },
       },
@@ -974,7 +982,44 @@ exports.getCounsellorCases = async (req, res) => {
 
     const cases = await Case.aggregate(pipeline);
 
-    const totalCountPipeline = [{ $match: match }, { $count: "totalCount" }];
+    const totalCountPipeline = [
+      {
+        $lookup: {
+          from: "sessions",
+          localField: "session_ids",
+          foreignField: "_id",
+          as: "sessions",
+        },
+      },
+      {
+        $match: {
+          "sessions.counsellor": mongoose.Types.ObjectId(userId),
+          isDeleted: false,
+        },
+      },
+      ...(searchQuery
+        ? [
+            {
+              $lookup: {
+                from: "forms",
+                localField: "form_id",
+                foreignField: "_id",
+                as: "form",
+              },
+            },
+            {
+              $unwind: { path: "$form", preserveNullAndEmptyArrays: true },
+            },
+            {
+              $match: {
+                "form.name": { $regex: searchQuery, $options: "i" },
+              },
+            },
+          ]
+        : []),
+      { $count: "totalCount" },
+    ];
+
     const totalCountResult = await Case.aggregate(totalCountPipeline);
     const totalCount = totalCountResult[0]?.totalCount || 0;
 
@@ -986,7 +1031,6 @@ exports.getCounsellorCases = async (req, res) => {
     return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
   }
 };
-
 
 exports.getAllCounsellors = async (req, res) => {
   try {
