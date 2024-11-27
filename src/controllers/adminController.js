@@ -729,7 +729,9 @@ exports.listController = async (req, res) => {
     } else if (type === "cases") {
       const filter = {};
       if (searchQuery) {
-        filter.$or = [{ "form_id.name": { $regex: searchQuery, $options: "i" } }];
+        filter.$or = [
+          { "form_id.name": { $regex: searchQuery, $options: "i" } },
+        ];
       }
       const sessions = await Case.find(filter)
         .populate("form_id")
@@ -785,11 +787,12 @@ exports.listController = async (req, res) => {
 exports.getUserSessions = async (req, res) => {
   try {
     const { userId } = req.params;
-    const { page, searchQuery, limit=10 } = req.query;
+    const { page, searchQuery, limit = 10 } = req.query;
     const skipCount = 10 * (page - 1);
-    const filter = {
-      user: userId,
-    };
+    const filter = {};
+    if (userId) {
+      filter["form_id.grNumber"] = userId;
+    }
     if (searchQuery) {
       filter.$or = [
         { "form_id.name": { $regex: searchQuery, $options: "i" } },
@@ -848,7 +851,7 @@ exports.getUser = async (req, res) => {
 exports.getCounsellorSessions = async (req, res) => {
   try {
     const userId = req.params.counsellorId;
-    const { page, searchQuery, limit=10 } = req.query;
+    const { page, searchQuery, limit = 10 } = req.query;
     const skipCount = 10 * (page - 1);
     const filter = {
       counsellor: userId,
