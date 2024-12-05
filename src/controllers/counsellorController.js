@@ -181,7 +181,9 @@ exports.listController = async (req, res) => {
         filter.status = status;
       }
       if (searchQuery) {
-        filter.$or = [{ "form_id.name": { $regex: searchQuery, $options: "i" } }];
+        filter.$or = [
+          { "form_id.name": { $regex: searchQuery, $options: "i" } },
+        ];
       }
 
       const cases = await Case.find(filter)
@@ -240,7 +242,9 @@ exports.listController = async (req, res) => {
         filter.status = status;
       }
       if (searchQuery) {
-        filter.$or = [{ "form_id.name": { $regex: searchQuery, $options: "i" } }];
+        filter.$or = [
+          { "form_id.name": { $regex: searchQuery, $options: "i" } },
+        ];
       }
       const sessions = await Case.find(filter)
         .populate("session_ids")
@@ -491,7 +495,9 @@ exports.addEntry = async (req, res) => {
       const emailData = {
         to: newSession.form_id.email,
         subject: `Your session requested with Session ID: ${newSession.session_id} and Case ID: ${upCase.case_id} for ${newSession.counsellor.name}`,
-        text: `Dear ${newSession.form_id.name},\n\nYour appointment request for ${
+        text: `Dear ${
+          newSession.form_id.name
+        },\n\nYour appointment request for ${
           newSession.counsellor.name
         } for ${moment(newSession.session_date).format("DD-MM-YYYY")} at ${
           newSession.session_time.start
@@ -945,7 +951,12 @@ exports.createReport = async (req, res) => {
 
 exports.createStudentReport = async (req, res) => {
   try {
-    const report = await createReport();
+    const { session } = req.body;
+    const getSession = await Session.findById(session)
+      .populate("form_id")
+      .populate("case_id")
+      .populate("counsellor");
+    const report = await createReport(getSession);
     return responseHandler(res, 200, "Report created successfully", report);
   } catch (error) {
     return responseHandler(res, 500, `Internal Server Error ${error.message}`);
@@ -954,13 +965,8 @@ exports.createStudentReport = async (req, res) => {
 
 exports.getSessionsExcel = async (req, res) => {
   try {
-    const { student, status } = req.query;
-    const { userId } = req;
-    const filter = {
-      user: userId,
-    };
-
-    const sessions = await Session.find()
+    const { case_id } = req.query;
+    const sessions = await Session.find({ case_id })
       .populate("case_id")
       .populate("form_id")
       .populate("counsellor");
@@ -968,8 +974,11 @@ exports.getSessionsExcel = async (req, res) => {
       "Case ID",
       "Session ID",
       "Student Name",
+      "Counsellor Name",
+      "Counseling Type",
       "Session Date",
       "Session Time",
+      "Description",
       "Status",
     ];
     const data = sessions.map((session) => {
@@ -977,8 +986,11 @@ exports.getSessionsExcel = async (req, res) => {
         case_id: session.case_id.case_id,
         session_id: session.session_id,
         student_name: session.form_id.name,
+        counsellor_name: session.counsellor.name,
+        counseling_type: session.counsellor.counsellorType,
         session_date: moment(session.session_date).format("DD-MM-YYYY"),
-        session_time: session.session_time,
+        session_time: `${session.session_time.start} - ${session.session_time.end}`,
+        description: session.description,
         status: session.status,
       };
     });

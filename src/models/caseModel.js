@@ -19,6 +19,7 @@ const caseSchema = mongoose.Schema(
   { timestamps: true }
 );
 
+
 const Case = mongoose.model("Case", caseSchema);
 
 module.exports = Case;

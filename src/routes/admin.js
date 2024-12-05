@@ -70,5 +70,7 @@ adminRoute.post(
   "/counselling-type/delete-many",
   adminController.deleteManyCounsellingType
 );
+adminRoute.get("/sessions-excel", adminController.getSessionsExcel);
+
 
 module.exports = adminRoute;
