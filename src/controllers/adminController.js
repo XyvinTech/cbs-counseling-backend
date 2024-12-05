@@ -1501,7 +1501,7 @@ exports.getSessionsExcel = async (req, res) => {
     let data;
     let headers;
     const filter = {};
-    if (counsellor) {
+    if (counsellor && reportType === "session") {
       filter.counsellor = counsellor;
     }
 
@@ -1509,13 +1509,6 @@ exports.getSessionsExcel = async (req, res) => {
       filter.session_date = {
         $gte: startDate,
         $lte: endDate,
-      };
-    }
-
-    if (startDate && endDate && reportType === "case") {
-      filter.createdAt = {
-        $gte: new Date(startDate),
-        $lte: new Date(endDate),
       };
     }
 
@@ -1562,8 +1555,6 @@ exports.getSessionsExcel = async (req, res) => {
       headers = [
         "Case ID",
         "Student Name",
-        "Counsellor Name",
-        "Counseling Type",
         "Status",
         "Session ID",
         "Session Date",
@@ -1577,8 +1568,6 @@ exports.getSessionsExcel = async (req, res) => {
           return {
             case_id: casee.case_id,
             student_name: casee.form_id?.name || "N/A",
-            counsellor_name: casee.counsellor?.name || "N/A",
-            counseling_type: casee.counsellor?.counsellorType || "N/A",
             status: casee.status,
             session_id: "N/A",
             session_date: "N/A",
@@ -1663,7 +1652,7 @@ exports.getSessionsExcel = async (req, res) => {
         counsellor_name: session.counsellorName || "N/A",
         session_count: session.sessionCount || 0,
       }));
-    } else if (reportType === "teacher-sesssion-count") {
+    } else if (reportType === "teacher-session-count") {
       const sessions = await Session.aggregate([
         {
           $match: {
@@ -1721,7 +1710,7 @@ exports.getSessionsExcel = async (req, res) => {
         counsellor_name: session.counsellorName || "N/A",
         session_count: session.sessionCount || 0,
       }));
-    } else if (reportType === "parent-sesssion-count") {
+    } else if (reportType === "parent-session-count") {
       const sessions = await Session.aggregate([
         {
           $match: {
