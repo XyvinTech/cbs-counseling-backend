@@ -1498,17 +1498,27 @@ exports.getSessionsExcel = async (req, res) => {
   try {
     const { reportType, startDate, endDate, counsellor, grNumber } = req.query;
 
-    let data;
-    let headers;
+    let data = [];
+    let headers = [];
     const filter = {};
-    if (counsellor && reportType === "session") {
-      filter.counsellor = counsellor;
+
+    if (counsellor) filter.counsellor = counsellor;
+
+    if (
+      ["session", "session-count"].includes(reportType) &&
+      startDate &&
+      endDate
+    ) {
+      filter.session_date = {
+        $gte: new Date(startDate),
+        $lte: new Date(endDate),
+      };
     }
 
-    if (startDate && endDate && reportType === "session") {
-      filter.session_date = {
-        $gte: startDate,
-        $lte: endDate,
+    if (reportType === "case" && startDate && endDate) {
+      filter.createdAt = {
+        $gte: new Date(startDate),
+        $lte: new Date(endDate),
       };
     }
 
@@ -1516,10 +1526,11 @@ exports.getSessionsExcel = async (req, res) => {
       const sessions = await Session.find(filter)
         .populate({
           path: "form_id",
-          match: grNumber ? { grNumber } : {},
+          match: grNumber ? { grNumber } : undefined,
         })
         .populate("case_id")
         .populate("counsellor");
+
       headers = [
         "Case ID",
         "Session ID",
@@ -1531,24 +1542,27 @@ exports.getSessionsExcel = async (req, res) => {
         "Description",
         "Status",
       ];
-      data = sessions.map((session) => {
-        return {
-          case_id: session.case_id.case_id,
-          session_id: session.session_id,
-          student_name: session.form_id.name,
-          counsellor_name: session.counsellor.name,
-          counseling_type: session.counsellor.counsellorType,
-          session_date: moment(session.session_date).format("DD-MM-YYYY"),
-          session_time: `${session.session_time.start} - ${session.session_time.end}`,
-          description: session.description,
-          status: session.status,
-        };
-      });
+
+      data = sessions.map((session) => ({
+        case_id: session.case_id?.case_id || "N/A",
+        session_id: session.session_id || "N/A",
+        student_name: session.form_id?.name || "N/A",
+        counsellor_name: session.counsellor?.name || "N/A",
+        counseling_type: session.counsellor?.counsellorType || "N/A",
+        session_date: moment(session.session_date).format("DD-MM-YYYY"),
+        session_time: session.session_time
+          ? `${session.session_time.start || "N/A"} - ${
+              session.session_time.end || "N/A"
+            }`
+          : "N/A",
+        description: session.description || "N/A",
+        status: session.status || "N/A",
+      }));
     } else if (reportType === "case") {
       const cases = await Case.find(filter)
         .populate({
           path: "form_id",
-          match: grNumber ? { grNumber } : {},
+          match: grNumber ? { grNumber } : undefined,
         })
         .populate("session_ids");
 
@@ -1563,12 +1577,12 @@ exports.getSessionsExcel = async (req, res) => {
         "Case Details",
       ];
 
-      data = cases.flatMap((casee) => {
-        if (casee.session_ids.length === 0) {
+      data = cases.flatMap((caseItem) => {
+        if (!caseItem.session_ids?.length) {
           return {
-            case_id: casee.case_id,
-            student_name: casee.form_id?.name || "N/A",
-            status: casee.status,
+            case_id: caseItem.case_id,
+            student_name: caseItem.form_id?.name || "N/A",
+            status: caseItem.status || "N/A",
             session_id: "N/A",
             session_date: "N/A",
             session_time: "N/A",
@@ -1577,30 +1591,28 @@ exports.getSessionsExcel = async (req, res) => {
           };
         }
 
-        return casee.session_ids.map((session) => ({
-          case_id: casee.case_id,
-          student_name: casee.form_id?.name || "N/A",
-          counsellor_name: casee.counsellor?.name || "N/A",
-          counseling_type: casee.counsellor?.counsellorType || "N/A",
-          status: casee.status,
+        return caseItem.session_ids.map((session) => ({
+          case_id: caseItem.case_id,
+          student_name: caseItem.form_id?.name || "N/A",
+          counsellor_name: session.counsellor?.name || "N/A",
+          counseling_type: session.counsellor?.counsellorType || "N/A",
+          status: caseItem.status || "N/A",
           session_id: session.session_id || "N/A",
           session_date: session.session_date
             ? moment(session.session_date).format("DD-MM-YYYY")
             : "N/A",
-          session_time:
-            `${session.session_time.start} - ${session.session_time.end}` ||
-            "N/A",
+          session_time: session.session_time
+            ? `${session.session_time.start || "N/A"} - ${
+                session.session_time.end || "N/A"
+              }`
+            : "N/A",
           description: session.description || "N/A",
           case_details: session.case_details || "N/A",
         }));
       });
-    } else if (reportType === "student-session-count") {
+    } else if (reportType === "session-count") {
       const sessions = await Session.aggregate([
-        {
-          $match: {
-            isDeleted: false,
-          },
-        },
+        { $match: filter },
         {
           $lookup: {
             from: "forms",
@@ -1609,163 +1621,36 @@ exports.getSessionsExcel = async (req, res) => {
             as: "formDetails",
           },
         },
-        {
-          $unwind: "$formDetails",
-        },
-        {
-          $match: {
-            "formDetails.referee": "student",
-          },
-        },
+        { $unwind: "$formDetails" },
         {
           $group: {
-            _id: "$counsellor",
+            _id: { counsellor: "$counsellor", referee: "$formDetails.referee" },
             sessionCount: { $sum: 1 },
           },
         },
         {
           $lookup: {
             from: "users",
-            localField: "_id",
+            localField: "_id.counsellor",
             foreignField: "_id",
             as: "counsellorDetails",
           },
         },
-        {
-          $unwind: "$counsellorDetails",
-        },
+        { $unwind: "$counsellorDetails" },
         {
           $project: {
             _id: 0,
-            counsellorId: "$_id",
             counsellorName: "$counsellorDetails.name",
+            referee: "$_id.referee",
             sessionCount: 1,
           },
         },
-        {
-          $sort: { sessionCount: -1 },
-        },
       ]);
 
-      headers = ["Counsellor Name", "Session Count"];
+      headers = ["Counsellor Name", "Referee", "Session Count"];
       data = sessions.map((session) => ({
         counsellor_name: session.counsellorName || "N/A",
-        session_count: session.sessionCount || 0,
-      }));
-    } else if (reportType === "teacher-session-count") {
-      const sessions = await Session.aggregate([
-        {
-          $match: {
-            isDeleted: false,
-          },
-        },
-        {
-          $lookup: {
-            from: "forms",
-            localField: "form_id",
-            foreignField: "_id",
-            as: "formDetails",
-          },
-        },
-        {
-          $unwind: "$formDetails",
-        },
-        {
-          $match: {
-            "formDetails.referee": "teacher",
-          },
-        },
-        {
-          $group: {
-            _id: "$counsellor",
-            sessionCount: { $sum: 1 },
-          },
-        },
-        {
-          $lookup: {
-            from: "users",
-            localField: "_id",
-            foreignField: "_id",
-            as: "counsellorDetails",
-          },
-        },
-        {
-          $unwind: "$counsellorDetails",
-        },
-        {
-          $project: {
-            _id: 0,
-            counsellorId: "$_id",
-            counsellorName: "$counsellorDetails.name",
-            sessionCount: 1,
-          },
-        },
-        {
-          $sort: { sessionCount: -1 },
-        },
-      ]);
-
-      headers = ["Counsellor Name", "Session Count"];
-      data = sessions.map((session) => ({
-        counsellor_name: session.counsellorName || "N/A",
-        session_count: session.sessionCount || 0,
-      }));
-    } else if (reportType === "parent-session-count") {
-      const sessions = await Session.aggregate([
-        {
-          $match: {
-            isDeleted: false,
-          },
-        },
-        {
-          $lookup: {
-            from: "forms",
-            localField: "form_id",
-            foreignField: "_id",
-            as: "formDetails",
-          },
-        },
-        {
-          $unwind: "$formDetails",
-        },
-        {
-          $match: {
-            "formDetails.referee": "parent",
-          },
-        },
-        {
-          $group: {
-            _id: "$counsellor",
-            sessionCount: { $sum: 1 },
-          },
-        },
-        {
-          $lookup: {
-            from: "users",
-            localField: "_id",
-            foreignField: "_id",
-            as: "counsellorDetails",
-          },
-        },
-        {
-          $unwind: "$counsellorDetails",
-        },
-        {
-          $project: {
-            _id: 0,
-            counsellorId: "$_id",
-            counsellorName: "$counsellorDetails.name",
-            sessionCount: 1,
-          },
-        },
-        {
-          $sort: { sessionCount: -1 },
-        },
-      ]);
-
-      headers = ["Counsellor Name", "Session Count"];
-      data = sessions.map((session) => ({
-        counsellor_name: session.counsellorName || "N/A",
+        referee: session.referee || "N/A",
         session_count: session.sessionCount || 0,
       }));
     }
@@ -1775,6 +1660,13 @@ exports.getSessionsExcel = async (req, res) => {
       data,
     });
   } catch (error) {
-    return responseHandler(res, 500, `Internal Server Error ${error.message}`);
+    return responseHandler(
+      res,
+      500,
+      `Internal Server Error: ${error.message}`,
+      {
+        stack: error.stack,
+      }
+    );
   }
 };
