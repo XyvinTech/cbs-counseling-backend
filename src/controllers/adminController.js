@@ -1564,7 +1564,12 @@ exports.getSessionsExcel = async (req, res) => {
           path: "form_id",
           match: grNumber ? { grNumber } : undefined,
         })
-        .populate("session_ids");
+        .populate({
+          path: "session_ids",
+          populate: {
+            path: "counsellor",
+          },
+        });
 
       headers = [
         "Case ID",
@@ -1595,7 +1600,7 @@ exports.getSessionsExcel = async (req, res) => {
           case_id: caseItem.case_id,
           student_name: caseItem.form_id?.name || "N/A",
           counsellor_name: session.counsellor?.name || "N/A",
-          counseling_type: session.counsellor?.counsellorType || "N/A",
+          counseling_type: session.type || "N/A",
           status: caseItem.status || "N/A",
           session_id: session.session_id || "N/A",
           session_date: session.session_date
