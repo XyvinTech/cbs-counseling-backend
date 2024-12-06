@@ -1510,8 +1510,8 @@ exports.getSessionsExcel = async (req, res) => {
       endDate
     ) {
       filter.session_date = {
-        $gte: startDate,
-        $lte: endDate,
+        $gte: new Date(startDate),
+        $lte: new Date(endDate),
       };
     }
 
@@ -1675,5 +1675,19 @@ exports.getSessionsExcel = async (req, res) => {
         stack: error.stack,
       }
     );
+  }
+};
+
+exports.createStudentReport = async (req, res) => {
+  try {
+    const { session } = req.body;
+    const getSession = await Session.findById(session)
+      .populate("form_id")
+      .populate("case_id")
+      .populate("counsellor");
+    const report = await createReport(getSession);
+    return responseHandler(res, 200, "Report created successfully", report);
+  } catch (error) {
+    return responseHandler(res, 500, `Internal Server Error ${error.message}`);
   }
 };

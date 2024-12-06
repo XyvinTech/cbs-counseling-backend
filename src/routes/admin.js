@@ -71,6 +71,6 @@ adminRoute.post(
   adminController.deleteManyCounsellingType
 );
 adminRoute.get("/sessions-excel", adminController.getSessionsExcel);
-
+adminRoute.post("/student-report", adminController.createStudentReport);
 
 module.exports = adminRoute;
