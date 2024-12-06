@@ -122,7 +122,7 @@ exports.createSessionEntrySchema = Joi.object({
   details: Joi.string(),
   grade: Joi.string(),
   remarks: Joi.string(),
-  report: Joi.array(),
+  report: Joi.string().allow(""),
   with_session: Joi.boolean(),
   isEditable: Joi.boolean(),
 });
