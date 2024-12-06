@@ -16,7 +16,7 @@ const sessionSchema = mongoose.Schema(
     },
     counsellor: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     description: { type: String },
-    report: { type: String },
+    report: [{ type: String }],
     case_details: { type: String },
     reschedule_remark: { type: String },
     cancel_remark: { type: String },
