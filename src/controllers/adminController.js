@@ -1574,6 +1574,8 @@ exports.getSessionsExcel = async (req, res) => {
       headers = [
         "Case ID",
         "Student Name",
+        "Counsellor Name",
+        "Counseling Type",
         "Status",
         "Session ID",
         "Session Date",
