@@ -1510,15 +1510,15 @@ exports.getSessionsExcel = async (req, res) => {
       endDate
     ) {
       filter.session_date = {
-        $gte: new Date(startDate),
-        $lte: new Date(endDate),
+        $gte: startDate,
+        $lte: endDate,
       };
     }
 
     if (reportType === "case" && startDate && endDate) {
       filter.createdAt = {
-        $gte: new Date(startDate),
-        $lte: new Date(endDate),
+        $gte: startDate,
+        $lte: endDate,
       };
     }
 
