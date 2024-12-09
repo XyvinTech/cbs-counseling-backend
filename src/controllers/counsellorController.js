@@ -886,7 +886,7 @@ exports.deleteTime = async (req, res) => {
 
     const updatedTime = await Time.findByIdAndUpdate(
       id,
-      { $set: { times: updatedTimes } },
+      { $set: { times: updatedTimes, reason: req.body.reason } },
       { new: true }
     );
 
@@ -1113,6 +1113,8 @@ exports.createEvent = async (req, res) => {
         `Invalid input: ${createEventValidator.error}`
       );
     }
+    req.body.creatorModel = "User";
+    req.body.creator = req.userId;
     const newEvent = await Event.create(req.body);
 
     if (newEvent) {

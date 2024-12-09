@@ -743,6 +743,12 @@ exports.listController = async (req, res) => {
       if (searchQuery) {
         filter.$or = [
           { "form_id.name": { $regex: searchQuery, $options: "i" } },
+          {
+            "session_ids.counsellor.name": {
+              $regex: searchQuery,
+              $options: "i",
+            },
+          },
         ];
       }
       const sessions = await Case.find(filter)
@@ -908,7 +914,7 @@ exports.getCounsellorSessions = async (req, res) => {
       .lean();
     const mappedData = sessions.map((session) => {
       return {
-        id: session.id,
+        id: session._id,
         session_id: session.session_id,
         session_date: session.session_date,
         session_time: session.session_time,
@@ -1131,6 +1137,8 @@ exports.createEvent = async (req, res) => {
         `Invalid input: ${createEventValidator.error}`
       );
     }
+    req.body.creatorModel = "Admin";
+    req.body.creator = req.userId;
     const newEvent = await Event.create(req.body);
 
     if (newEvent) {
@@ -1226,8 +1234,17 @@ exports.deleteEvent = async (req, res) => {
 
 exports.getCaseSessions = async (req, res) => {
   try {
-    const { caseId } = req.params;
-    const sessions = await Session.find({ case_id: caseId })
+    const { caseId, searchQuery } = req.params;
+    const filter = {
+      case_id: caseId,
+    };
+    if (searchQuery) {
+      filter.$or = [
+        { "form_id.name": { $regex: searchQuery, $options: "i" } },
+        { "counsellor.name": { $regex: searchQuery, $options: "i" } },
+      ];
+    }
+    const sessions = await Session.find(filter)
       .populate("form_id")
       .populate("counsellor", "name");
     const mappedData = sessions.map((session) => {

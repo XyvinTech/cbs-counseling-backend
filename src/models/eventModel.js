@@ -10,6 +10,14 @@ const eventSchema = mongoose.Schema(
     remainder: { type: [String] },
     details: { type: String },
     requisition_description: { type: String },
+    creator: {
+      type: mongoose.Schema.Types.ObjectId,
+      refPath: "creatorModel",
+    },
+    creatorModel: {
+      type: String,
+      enum: ["User", "Admin"],
+    },
   },
   { timestamps: true }
 );
