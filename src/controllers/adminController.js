@@ -764,7 +764,7 @@ exports.listController = async (req, res) => {
         },
         {
           $lookup: {
-            from: "counsellors", // Collection name for the `counsellor` reference
+            from: "users",
             localField: "sessionDetails.counsellor",
             foreignField: "_id",
             as: "counsellorDetails",
