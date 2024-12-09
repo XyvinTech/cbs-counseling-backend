@@ -886,7 +886,7 @@ exports.deleteTime = async (req, res) => {
 
     const updatedTime = await Time.findByIdAndUpdate(
       id,
-      { $set: { times: updatedTimes, reason: req.body.reason } },
+      { $set: { times: updatedTimes } },
       { new: true }
     );
 
