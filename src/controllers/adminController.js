@@ -739,39 +739,69 @@ exports.listController = async (req, res) => {
       }
       return responseHandler(res, 404, "No reports found");
     } else if (type === "cases") {
-      const filter = {};
-      if (searchQuery) {
-        filter.$or = [
-          { "form_id.name": { $regex: searchQuery, $options: "i" } },
-          {
-            "session_ids.counsellor.name": {
-              $regex: searchQuery,
-              $options: "i",
-            },
+      const pipeline = [
+        {
+          $lookup: {
+            from: "forms", // Collection name for the `form_id` reference
+            localField: "form_id",
+            foreignField: "_id",
+            as: "formDetails",
           },
-        ];
-      }
-      const sessions = await Case.find(filter)
-        .populate("form_id")
-        .populate({
-          path: "session_ids",
-          populate: {
-            path: "counsellor",
+        },
+        {
+          $lookup: {
+            from: "sessions", // Collection name for the `session_ids` reference
+            localField: "session_ids",
+            foreignField: "_id",
+            as: "sessionDetails",
           },
-        })
-        .skip(skipCount)
-        .limit(limit)
-        .sort({ createdAt: -1 })
-        .lean();
-      const mappedData = sessions.map((session) => {
-        return {
-          ...session,
-          user_name: session?.form_id?.name,
-          counsellor_name: session?.session_ids[0]?.counsellor?.name,
-        };
-      });
+        },
+        {
+          $unwind: {
+            path: "$sessionDetails",
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+        {
+          $lookup: {
+            from: "counsellors", // Collection name for the `counsellor` reference
+            localField: "sessionDetails.counsellor",
+            foreignField: "_id",
+            as: "counsellorDetails",
+          },
+        },
+        {
+          $match: searchQuery
+            ? {
+                $or: [
+                  {
+                    "formDetails.name": { $regex: searchQuery, $options: "i" },
+                  },
+                  {
+                    "counsellorDetails.name": {
+                      $regex: searchQuery,
+                      $options: "i",
+                    },
+                  },
+                ],
+              }
+            : {},
+        },
+        { $skip: skipCount },
+        { $limit: limit },
+        { $sort: { createdAt: -1 } },
+      ];
+
+      const sessions = await Case.aggregate(pipeline);
+
+      const mappedData = sessions.map((session) => ({
+        ...session,
+        user_name: session?.formDetails?.[0]?.name,
+        counsellor_name: session?.counsellorDetails?.[0]?.name,
+      }));
+
       if (sessions.length > 0) {
-        const totalCount = await Case.countDocuments(filter);
+        const totalCount = await Case.countDocuments({});
         return responseHandler(
           res,
           200,
@@ -780,6 +810,7 @@ exports.listController = async (req, res) => {
           totalCount
         );
       }
+
       return responseHandler(res, 404, "No reports found");
     } else if (type === "counselling-type") {
       const types = await Type.find();
