@@ -175,8 +175,8 @@ exports.createSession = async (req, res) => {
     session.case_id = caseId._id;
 
     if (
-      session.form_id.referee === "parent" ||
-      session.form_id.referee === "teacher"
+      newSession.form_id.referee === "parent" ||
+      newSession.form_id.referee === "teacher"
     ) {
       const emailData = {
         to: newSession.form_id.email,
@@ -187,7 +187,7 @@ exports.createSession = async (req, res) => {
       const counData = {
         to: newSession.counsellor.email,
         subject: `You have a new session requested with Session ID: ${newSession.session_id} and Case ID: ${case_id} from ${newSession.form_id.name}`,
-        text: `Dear ${newSession.counsellor.name}, Dear Counselor, You have an appointment request in your queue from ${newSession.form_id.referee} for the student ${newSession.form_id.name}. Please address this request.`,
+        text: `Dear ${newSession.counsellor.name}, You have an appointment request in your queue from ${newSession.form_id.referee} for the student ${newSession.form_id.name}. Please address this request.`,
       };
       await sendMail(counData);
     } else {

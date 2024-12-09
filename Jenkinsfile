@@ -40,16 +40,16 @@ pipeline {
             }
         }
         
-        // stage('Stop Application') {
-        //     steps {
-        //         bat """
-        //             pm2 stop app
-        //             if %ERRORLEVEL% NEQ 0 (
-        //                 echo "No existing process to stop."
-        //             )
-        //         """
-        //     }
-        // }
+        stage('Stop Application') {
+            steps {
+                bat """
+                    pm2 stop app
+                    if %ERRORLEVEL% NEQ 0 (
+                        echo "No existing process to stop."
+                    )
+                """
+            }
+        }
 
         stage('Start application') {
             steps {
