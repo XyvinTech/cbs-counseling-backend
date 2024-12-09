@@ -1497,13 +1497,26 @@ exports.updateNumbers = async (req, res) => {
 
 exports.getSessionsExcel = async (req, res) => {
   try {
-    const { reportType, startDate, endDate, counsellor, grNumber } = req.query;
+    const { reportType, startDate, endDate } = req.query;
+
+    // Parse counsellor and grNumber as arrays
+    let counsellors = req.query.counsellor
+      ? Array.isArray(req.query.counsellor)
+        ? req.query.counsellor
+        : [req.query.counsellor]
+      : [];
+
+    let grNumbers = req.query.grNumber
+      ? Array.isArray(req.query.grNumber)
+        ? req.query.grNumber
+        : [req.query.grNumber]
+      : [];
 
     let data = [];
     let headers = [];
     const filter = {};
 
-    if (counsellor) filter.counsellor = counsellor;
+    if (counsellors.length > 0) filter.counsellor = { $in: counsellors };
 
     if (
       ["session", "session-count"].includes(reportType) &&
@@ -1518,8 +1531,8 @@ exports.getSessionsExcel = async (req, res) => {
 
     if (reportType === "case" && startDate && endDate) {
       filter.createdAt = {
-        $gte: startDate,
-        $lte: endDate,
+        $gte: new Date(startDate),
+        $lte: new Date(endDate),
       };
     }
 
@@ -1527,7 +1540,7 @@ exports.getSessionsExcel = async (req, res) => {
       const sessions = await Session.find(filter)
         .populate({
           path: "form_id",
-          match: grNumber ? { grNumber } : undefined,
+          match: grNumbers.length > 0 ? { grNumber: { $in: grNumbers } } : undefined,
         })
         .populate("case_id")
         .populate("counsellor");
@@ -1563,7 +1576,7 @@ exports.getSessionsExcel = async (req, res) => {
       const cases = await Case.find(filter)
         .populate({
           path: "form_id",
-          match: grNumber ? { grNumber } : undefined,
+          match: grNumbers.length > 0 ? { grNumber: { $in: grNumbers } } : undefined,
         })
         .populate({
           path: "session_ids",
@@ -1630,6 +1643,9 @@ exports.getSessionsExcel = async (req, res) => {
           },
         },
         { $unwind: "$formDetails" },
+        {
+          $match: grNumbers.length > 0 ? { "formDetails.grNumber": { $in: grNumbers } } : {},
+        },
         {
           $group: {
             _id: { counsellor: "$counsellor", referee: "$formDetails.referee" },
