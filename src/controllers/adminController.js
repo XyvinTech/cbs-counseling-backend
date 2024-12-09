@@ -1505,7 +1505,9 @@ exports.getSessionsExcel = async (req, res) => {
 
     // Handle counsellor filter
     if (counsellor === "*") {
-      const allCounsellors = await User.find({ userType: "counsellor" }).select("_id");
+      const allCounsellors = await User.find({ userType: "counsellor" }).select(
+        "_id"
+      );
       if (allCounsellors.length > 0) {
         filter.counsellor = { $in: allCounsellors.map((user) => user._id) };
       }
@@ -1518,14 +1520,20 @@ exports.getSessionsExcel = async (req, res) => {
     if (grNumber === "*") {
       const allGrNumbers = await Form.find().select("grNumber");
       if (allGrNumbers.length > 0) {
-        grNumberFilter = { grNumber: { $in: allGrNumbers.map((form) => form.grNumber) } };
+        grNumberFilter = {
+          grNumber: { $in: allGrNumbers.map((form) => form.grNumber) },
+        };
       }
     } else if (grNumber) {
       grNumberFilter = { grNumber };
     }
 
     // Date filters for session and case reports
-    if (["session", "session-count"].includes(reportType) && startDate && endDate) {
+    if (
+      ["session", "session-count"].includes(reportType) &&
+      startDate &&
+      endDate
+    ) {
       filter.session_date = {
         $gte: new Date(startDate),
         $lte: new Date(endDate),
@@ -1539,6 +1547,7 @@ exports.getSessionsExcel = async (req, res) => {
       };
     }
 
+    // Session Report
     if (reportType === "session") {
       const sessions = await Session.find(filter)
         .populate({
@@ -1577,16 +1586,132 @@ exports.getSessionsExcel = async (req, res) => {
       }));
     }
 
-    // Additional logic for case and session-count reports...
+    // Case Report
+    else if (reportType === "case") {
+      const cases = await Case.find(filter)
+        .populate({
+          path: "form_id",
+          match: grNumberFilter,
+        })
+        .populate({
+          path: "session_ids",
+          populate: {
+            path: "counsellor",
+          },
+        });
+
+      headers = [
+        "Case ID",
+        "Student Name",
+        "Counsellor Name",
+        "Counseling Type",
+        "Status",
+        "Session ID",
+        "Session Date",
+        "Session Time",
+        "Description",
+        "Case Details",
+      ];
+
+      data = cases.flatMap((caseItem) => {
+        if (!caseItem.session_ids?.length) {
+          return {
+            case_id: caseItem.case_id,
+            student_name: caseItem.form_id?.name || "N/A",
+            counsellor_name: "N/A",
+            counseling_type: "N/A",
+            status: caseItem.status || "N/A",
+            session_id: "N/A",
+            session_date: "N/A",
+            session_time: "N/A",
+            description: "N/A",
+            case_details: "N/A",
+          };
+        }
+
+        return caseItem.session_ids.map((session) => ({
+          case_id: caseItem.case_id,
+          student_name: caseItem.form_id?.name || "N/A",
+          counsellor_name: session.counsellor?.name || "N/A",
+          counseling_type: session.counsellor?.counsellorType || "N/A",
+          status: caseItem.status || "N/A",
+          session_id: session.session_id || "N/A",
+          session_date: session.session_date
+            ? moment(session.session_date).format("DD-MM-YYYY")
+            : "N/A",
+          session_time: session.session_time
+            ? `${session.session_time.start || "N/A"} - ${
+                session.session_time.end || "N/A"
+              }`
+            : "N/A",
+          description: session.description || "N/A",
+          case_details: session.case_details || "N/A",
+        }));
+      });
+    }
+
+    // Session Count Report
+    else if (reportType === "session-count") {
+      const sessions = await Session.aggregate([
+        { $match: filter },
+        {
+          $lookup: {
+            from: "forms",
+            localField: "form_id",
+            foreignField: "_id",
+            as: "formDetails",
+          },
+        },
+        { $unwind: "$formDetails" },
+        {
+          $match: grNumberFilter, // Apply grNumber filter after lookup
+        },
+        {
+          $group: {
+            _id: { counsellor: "$counsellor", referee: "$formDetails.referee" },
+            sessionCount: { $sum: 1 },
+          },
+        },
+        {
+          $lookup: {
+            from: "users",
+            localField: "_id.counsellor",
+            foreignField: "_id",
+            as: "counsellorDetails",
+          },
+        },
+        { $unwind: "$counsellorDetails" },
+        {
+          $project: {
+            _id: 0,
+            counsellorName: "$counsellorDetails.name",
+            referee: "$_id.referee",
+            sessionCount: 1,
+          },
+        },
+      ]);
+
+      headers = ["Counsellor Name", "Referee", "Session Count"];
+      data = sessions.map((session) => ({
+        counsellor_name: session.counsellorName || "N/A",
+        referee: session.referee || "N/A",
+        session_count: session.sessionCount || 0,
+      }));
+    }
 
     return responseHandler(res, 200, "Excel data created successfully", {
       headers,
       data,
     });
   } catch (error) {
-    return responseHandler(res, 500, `Internal Server Error: ${error.message}`, {
-      stack: error.stack,
-    });
+    return responseHandler(
+      res,
+      500,
+      `Internal Server Error: ${error.message}`,
+      {
+        stack: error.stack,
+      }
+    );
   }
 };
 
