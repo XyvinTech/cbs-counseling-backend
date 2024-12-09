@@ -308,50 +308,70 @@ exports.acceptSession = async (req, res) => {
     };
     await Notification.create(data);
 
-    const emailDataForUserAccepted = {
-      to: session.form_id.email,
-      subject: `Your session with Session ID: ${session.session_id} has been accepted`,
-      text: `Dear ${session.form_id.name},
-    
-    Your appointment request for ${session.counsellor.name} on ${moment(
-        session.session_date
-      ).format("DD-MM-YYYY")} at ${session.session_time.start}-${
-        session.session_time.end
-      } has been accepted by the Counselor. 
-    
-    Here are the details of your session:
-    - **Session ID**: ${session.session_id}
-    - **Case ID**: ${session.case_id.case_id}
-    - **Date**: ${moment(session.session_date).format("DD-MM-YYYY")}
-    - **Time**: ${session.session_time.start}-${session.session_time.end}
-    
-    We look forward to seeing you at the scheduled time.
-    
-    Thank you`,
-    };
+    if (
+      session.form_id.referee === "parent" ||
+      session.form_id.referee === "teacher"
+    ) {
+      const emailDataForUserAccepted = {
+        to: session.form_id.email,
+        subject: `Your session with Session ID: ${session.session_id} has been accepted`,
+        text: `Dear ${session.form_id.referee}, Your appointment request for ${session.form_id.name} has been accepted to the Counselor for approval.`,
+      };
 
-    await sendMail(emailDataForUserAccepted);
-    const emailDataForCounselorAccepted = {
-      to: session.counsellor.email,
-      subject: `Session with Session ID: ${session.session_id} has been accepted`,
-      text: `Dear ${session.counsellor.name},
-    
-    The session request from ${session.form_id.name} has been accepted. 
-    
-    Here are the details of the session:
-    - **Session ID**: ${session.session_id}
-    - **Case ID**: ${session.case_id.case_id}
-    - **Date**: ${moment(session.session_date).format("DD-MM-YYYY")}
-    - **Time**: ${session.session_time.start}-${session.session_time.end}
-    - **User**: ${session.form_id.name}
-    - **User Email**: ${session.form_id.email}
-    
-    Please prepare for the session accordingly.
-    
-    Thank you`,
-    };
+      const emailDataForCounselorAccepted = {
+        to: session.counsellor.email,
+        subject: `Session with Session ID: ${session.session_id} has been accepted`,
+        text: `Dear ${session.counsellor.name}, You have an appointment request in your queue from ${session.form_id.referee} for the student ${session.form_id.name} has been accepted.`,
+      };
+      await sendMail(emailDataForUserAccepted);
+      await sendMail(emailDataForCounselorAccepted);
+    } else {
+      const emailDataForUserAccepted = {
+        to: session.form_id.email,
+        subject: `Your session with Session ID: ${session.session_id} has been accepted`,
+        text: `Dear ${session.form_id.name},
+      
+      Your appointment request for ${session.counsellor.name} on ${moment(
+          session.session_date
+        ).format("DD-MM-YYYY")} at ${session.session_time.start}-${
+          session.session_time.end
+        } has been accepted by the Counselor. 
+      
+      Here are the details of your session:
+      - **Session ID**: ${session.session_id}
+      - **Case ID**: ${session.case_id.case_id}
+      - **Date**: ${moment(session.session_date).format("DD-MM-YYYY")}
+      - **Time**: ${session.session_time.start}-${session.session_time.end}
+      
+      We look forward to seeing you at the scheduled time.
+      
+      Thank you`,
+      };
 
-    await sendMail(emailDataForCounselorAccepted);
+      await sendMail(emailDataForUserAccepted);
+      const emailDataForCounselorAccepted = {
+        to: session.counsellor.email,
+        subject: `Session with Session ID: ${session.session_id} has been accepted`,
+        text: `Dear ${session.counsellor.name},
+      
+      The session request from ${session.form_id.name} has been accepted. 
+      
+      Here are the details of the session:
+      - **Session ID**: ${session.session_id}
+      - **Case ID**: ${session.case_id.case_id}
+      - **Date**: ${moment(session.session_date).format("DD-MM-YYYY")}
+      - **Time**: ${session.session_time.start}-${session.session_time.end}
+      - **User**: ${session.form_id.name}
+      - **User Email**: ${session.form_id.email}
+      
+      Please prepare for the session accordingly.
+      
+      Thank you`,
+      };
+
+      await sendMail(emailDataForCounselorAccepted);
+    }
+
     if (!updatedSession)
       return responseHandler(res, 400, "Session Accepted failed");
     return responseHandler(

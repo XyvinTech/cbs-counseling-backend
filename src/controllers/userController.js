@@ -159,8 +159,8 @@ exports.createSession = async (req, res) => {
     const case_id = `#CS_${String(count + 1).padStart(2, "0")}`;
 
     const newSession = await Session.findById(session._id)
-    .populate("form_id")
-    .populate("counsellor");
+      .populate("form_id")
+      .populate("counsellor");
 
     const caseId = await Case.create({
       form_id: req.body.form_id,
@@ -173,38 +173,61 @@ exports.createSession = async (req, res) => {
     await newSession.save();
 
     session.case_id = caseId._id;
-    const emailData = {
-      to: newSession.form_id.email,
-      subject: `Your session requested with Session ID: ${newSession.session_id} and Case ID: ${case_id} for ${newSession.counsellor.name}`,
-      text: `Dear ${newSession.form_id.name},\n\nYour appointment request for ${
-        newSession.counsellor.name
-      } for ${moment(newSession.session_date).format("DD-MM-YYYY")} at ${
-        newSession.session_time.start
-      }-${
-        newSession.session_time.end
-      } has been sent to the Counselor for approval. We will inform you through an email once your request has been approved by the Counselor.`,
-    };
-    await sendMail(emailData);
+
+    if (
+      session.form_id.referee === "parent" ||
+      session.form_id.referee === "teacher"
+    ) {
+      const emailData = {
+        to: newSession.form_id.email,
+        subject: `Your session requested with Session ID: ${newSession.session_id} and Case ID: ${case_id} for ${newSession.counsellor.name}`,
+        text: `Dear ${newSession.form_id.referee}, Your appointment request for ${newSession.form_id.name} has been sent to the Counselor for approval.`,
+      };
+      await sendMail(emailData);
+      const counData = {
+        to: newSession.counsellor.email,
+        subject: `You have a new session requested with Session ID: ${newSession.session_id} and Case ID: ${case_id} from ${newSession.form_id.name}`,
+        text: `Dear ${newSession.counsellor.name}, Dear Counselor, You have an appointment request in your queue from ${newSession.form_id.referee} for the student ${newSession.form_id.name}. Please address this request.`,
+      };
+      await sendMail(counData);
+    } else {
+      const emailData = {
+        to: newSession.form_id.email,
+        subject: `Your session requested with Session ID: ${newSession.session_id} and Case ID: ${case_id} for ${newSession.counsellor.name}`,
+        text: `Dear ${
+          newSession.form_id.name
+        },\n\nYour appointment request for ${
+          newSession.counsellor.name
+        } for ${moment(newSession.session_date).format("DD-MM-YYYY")} at ${
+          newSession.session_time.start
+        }-${
+          newSession.session_time.end
+        } has been sent to the Counselor for approval. We will inform you through an email once your request has been approved by the Counselor.`,
+      };
+      await sendMail(emailData);
+      const counData = {
+        to: newSession.counsellor.email,
+        subject: `You have a new session requested with Session ID: ${newSession.session_id} and Case ID: ${case_id} from ${newSession.form_id.name}`,
+        text: `Dear ${
+          newSession.counsellor.name
+        },\n\nYou have received an appointment request from ${
+          newSession.form_id.name
+        } for ${moment(newSession.session_date).format("DD-MM-YYYY")} at ${
+          newSession.session_time.start
+        }-${
+          newSession.session_time.end
+        }. The request has been sent to you for approval. We will notify you via email once the request has been approved.`,
+      };
+      await sendMail(counData);
+    }
+
     const notif_data = {
       user: session.counsellor,
       case_id: caseId._id,
       session: session._id,
       details: "New session requested",
     };
-    const counData = {
-      to: newSession.counsellor.email,
-      subject: `You have a new session requested with Session ID: ${newSession.session_id} and Case ID: ${case_id} from ${newSession.form_id.name}`,
-      text: `Dear ${
-        newSession.counsellor.name
-      },\n\nYou have received an appointment request from ${
-        newSession.form_id.name
-      } for ${moment(newSession.session_date).format("DD-MM-YYYY")} at ${
-        newSession.session_time.start
-      }-${
-        newSession.session_time.end
-      }. The request has been sent to you for approval. We will notify you via email once the request has been approved.`,
-    };
-    await sendMail(counData);
+
     await Notification.create(notif_data);
 
     if (!session) {
