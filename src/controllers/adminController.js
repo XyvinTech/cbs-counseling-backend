@@ -707,10 +707,9 @@ exports.listController = async (req, res) => {
       const filter = {};
       if (searchQuery) {
         filter.$or = [{ title: { $regex: searchQuery, $options: "i" } }];
+      
       }
-      await Event.updateMany(filter, {
-        $set: { creatorModel: "Admin", creator: req.userId },
-      });
+      
       const event = await Event.find(filter)
         .skip(skipCount)
         .limit(limit)
