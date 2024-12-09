@@ -914,7 +914,7 @@ exports.getCounsellorSessions = async (req, res) => {
       .lean();
     const mappedData = sessions.map((session) => {
       return {
-        id: session._id,
+        _id: session._id,
         session_id: session.session_id,
         session_date: session.session_date,
         session_time: session.session_time,
