@@ -788,7 +788,7 @@ exports.listController = async (req, res) => {
             : {},
         },
         { $skip: skipCount },
-        { $limit: limit },
+        { $limit: Number(limit) },
         { $sort: { createdAt: -1 } },
       ];
 
