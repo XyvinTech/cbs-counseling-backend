@@ -35,7 +35,6 @@ const timeSchema = new mongoose.Schema(
     times: {
       type: [timeIntervalSchema],
     },
-    reason: { type: String },
   },
   { timestamps: true }
 );
