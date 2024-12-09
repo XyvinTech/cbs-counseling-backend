@@ -13,6 +13,7 @@ const Notification = require("../models/notificationModel");
 const { createReport } = require("../utils/generateReport");
 const moment = require("moment-timezone");
 const Type = require("../models/typeModel");
+const TimeRemovalLog = require("../models/TimeRemovalLog");
 
 exports.loginCounsellor = async (req, res) => {
   try {
@@ -863,6 +864,7 @@ exports.getAvailableTimes = async (req, res) => {
 exports.deleteTime = async (req, res) => {
   try {
     const { id } = req.params;
+    const { times, reason } = req.body; // Reason for deletion
 
     const existingTime = await Time.findById(id);
 
@@ -870,14 +872,36 @@ exports.deleteTime = async (req, res) => {
       return responseHandler(res, 404, "Time not found");
     }
 
-    if (Array.isArray(req.body.times) && req.body.times.length === 0) {
+    if (Array.isArray(times) && times.length === 0) {
       await Time.findByIdAndDelete(id);
       return responseHandler(res, 200, "Time deleted successfully");
     }
 
+    // Log each deleted time interval with reason
+    for (const deleteInterval of times) {
+      const intervalExists = existingTime.times.some(
+        (existingInterval) =>
+          deleteInterval.start === existingInterval.start &&
+          deleteInterval.end === existingInterval.end
+      );
+
+      if (intervalExists) {
+        await TimeRemovalLog.create({
+          user: existingTime.user,
+          day: existingTime.day,
+          time: {
+            start: deleteInterval.start,
+            end: deleteInterval.end,
+          },
+          reason: reason || "No reason provided",
+        });
+      }
+    }
+
+    // Filter out the times to be deleted
     const updatedTimes = existingTime.times.filter(
       (existingInterval) =>
-        !req.body.times.some(
+        !times.some(
           (deleteInterval) =>
             deleteInterval.start === existingInterval.start &&
             deleteInterval.end === existingInterval.end
