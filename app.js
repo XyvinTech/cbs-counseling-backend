@@ -44,7 +44,6 @@ const frontendBuildPath = path.join(
 // !Serve static files from the frontend build directory
 app.use(express.static(frontendBuildPath));
 
-
 //* Swagger setup
 app.use(
   "/api-docs",
@@ -60,7 +59,7 @@ app.use(`${BASE_PATH}/user`, userRoute);
 // Define the directory where the files will be uploaded
 const uploadDir = "C:/cbs_school_files";
 // Serve static files from the cbs_school folder
-app.use('/images', express.static(uploadDir));
+app.use("/images", express.static(uploadDir));
 
 // Ensure the directory exists, if not, create it
 if (!fs.existsSync(uploadDir)) {
@@ -77,9 +76,13 @@ const storage = multer.diskStorage({
   },
 });
 
-
 // Set up multer middleware
-const upload = multer({ storage });
+const upload = multer({
+  storage,
+  fileFilter: (req, file, cb) => {
+    cb(null, true); // Accept all file types
+  },
+});
 
 // Create a simple POST route for file upload
 app.post(`${BASE_PATH}/upload`, upload.single("file"), (req, res) => {
@@ -108,36 +111,45 @@ app.get("*", (req, res) => {
   res.sendFile(path.join(frontendBuildPath, "index.html"));
 });
 
-if (NODE_ENV === 'development') {
+if (NODE_ENV === "development") {
   // In development mode, run an HTTP server
   http.createServer(app).listen(PORT, () => {
-    console.log(clc.greenBright(`✓ HTTP Development App is running on port: ${PORT}`));
+    console.log(
+      clc.greenBright(`✓ HTTP Development App is running on port: ${PORT}`)
+    );
     console.log(clc.yellowBright(`✓ Environment: ${NODE_ENV}`));
   });
 } else {
   // Load the SSL options (private key, certificate, and CA bundle) for production
   const sslOptions = {
-    key: fs.readFileSync(path.join(__dirname, "ssl", "private.key")),  // Private Key
+    key: fs.readFileSync(path.join(__dirname, "ssl", "private.key")), // Private Key
     cert: fs.readFileSync(path.join(__dirname, "ssl", "certificate.crt")), // Public Certificate
-    ca: fs.readFileSync(path.join(__dirname, "ssl", "ca_bundle.crt"))  // CA Bundle (optional but recommended)
+    ca: fs.readFileSync(path.join(__dirname, "ssl", "ca_bundle.crt")), // CA Bundle (optional but recommended)
   };
 
   //! Start the HTTPS server
   https.createServer(sslOptions, app).listen(PORT, () => {
-    const portMessage = clc.redBright(`✓ HTTPS App is running on port: ${PORT}`);
+    const portMessage = clc.redBright(
+      `✓ HTTPS App is running on port: ${PORT}`
+    );
     const envMessage = clc.yellowBright(`✓ Environment: ${NODE_ENV}`);
     console.log(`${portMessage}\n${envMessage}`);
   });
 
   // Create an HTTP server that redirects to HTTPS
-  http.createServer((req, res) => {
-    // Redirect any incoming request to HTTPS
-    res.writeHead(301, { Location: `https://${req.headers.host}${req.url}` });
-    res.end();
-  }).listen(HTTP_PORT, () => {
-    console.log(clc.blueBright(`HTTP to HTTPS redirect is running on port: ${HTTP_PORT}`));
-  });
+  http
+    .createServer((req, res) => {
+      // Redirect any incoming request to HTTPS
+      res.writeHead(301, { Location: `https://${req.headers.host}${req.url}` });
+      res.end();
+    })
+    .listen(HTTP_PORT, () => {
+      console.log(
+        clc.blueBright(
+          `HTTP to HTTPS redirect is running on port: ${HTTP_PORT}`
+        )
+      );
+    });
 }
-
 
 // !test
