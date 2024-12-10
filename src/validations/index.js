@@ -72,23 +72,23 @@ exports.editStudentSchema = Joi.object({
 exports.createEventSchema = Joi.object({
   title: Joi.string().required(),
   date: Joi.date().required(),
-  venue: Joi.string().required(),
-  guest: Joi.string().required(),
+  venue: Joi.string().allow(""),
+  guest: Joi.string().allow(""),
   requisition_image: Joi.string(),
   remainder: Joi.array().required(),
   details: Joi.string().required(),
-  requisition_description: Joi.string(),
+  requisition_description: Joi.string().allow(""),
 });
 
 exports.editEventSchema = Joi.object({
   title: Joi.string(),
   date: Joi.date(),
-  venue: Joi.string(),
-  guest: Joi.string(),
+  venue: Joi.string().allow(""),
+  guest: Joi.string().allow(""),
   requisition_image: Joi.string(),
   remainder: Joi.array(),
   details: Joi.string(),
-  requisition_description: Joi.string(),
+  requisition_description: Joi.string().allow(""),  
 });
 
 exports.createSessionSchema = Joi.object({
