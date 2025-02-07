@@ -66,13 +66,11 @@ exports.getProfile = async (req, res) => {
 
 exports.updateUser = async (req, res) => {
   try {
-    const { error } = validation.updateUser.validate(req.body, {
-      abortEarly: true,
-    });
-    if (error) {
-      return responseHandler(res, 400, `Invalid input: ${error.message}`);
+    const { id } = req.params;
+    if (!id) {
+      return responseHandler(res, 400, "User ID is required");
     }
-    const user = await User.findByIdAndUpdate(req.params.id, req.body, {
+    const user = await User.findByIdAndUpdate(id, req.body, {
       new: true,
     });
     return responseHandler(res, 200, "Success", user);
