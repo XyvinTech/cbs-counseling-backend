@@ -219,7 +219,7 @@ exports.getEvent = async (req, res) => {
     if (!id) {
       return responseHandler(res, 400, "Event ID is required");
     }
-    const event = await Event.findById(id);
+    const event = await Event.findById(id).populate("creator", "name")
     if (event) {
       return responseHandler(res, 200, "Success", event);
     }
