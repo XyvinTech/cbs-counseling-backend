@@ -104,3 +104,8 @@ exports.createSessionSchema = Joi.object({
   description: Joi.string(),
   report: Joi.string(),
 });
+
+exports.addTimeSchema = Joi.object({
+  day: Joi.string().required(),
+  times: Joi.array(),
+});

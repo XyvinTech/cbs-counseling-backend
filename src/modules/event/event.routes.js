@@ -10,6 +10,8 @@ router
   .post(event.createEvent)
   .delete(event.bulkDelete)
   .get(event.getEvents);
+
+router.route("/calender").get(event.getCalender);
 router.route("/:id").put(event.editEvent).delete(event.deleteEvent);
 
 module.exports = router;
