@@ -8,23 +8,9 @@ const User = require("../../models/userModel");
 exports.dashboard = async (req, res) => {
   try {
     let { page = 1, limit = 10, searchQuery, status } = req.query;
-    page = parseInt(page);
-    limit = parseInt(limit);
+    page = Number(page);
+    limit = Number(limit);
     const skipCount = limit * (page - 1);
-
-    const [
-      student_count,
-      counsellor_count,
-      case_count,
-      session_count,
-      event_count,
-    ] = await Promise.all([
-      User.countDocuments({ userType: "student" }),
-      User.countDocuments({ userType: "counsellor" }),
-      Case.countDocuments(),
-      Session.countDocuments(),
-      Event.countDocuments(),
-    ]);
 
     const filter = {};
     if (searchQuery) {
@@ -37,23 +23,37 @@ exports.dashboard = async (req, res) => {
       filter.status = status;
     }
 
-    const session_list = await Session.find(filter)
-      .populate("form_id", "name")
-      .populate("counsellor", "name")
-      .skip(skipCount)
-      .limit(limit)
-      .sort({ createdAt: -1 })
-      .lean();
+    const [
+      student_count,
+      counsellor_count,
+      case_count,
+      session_count,
+      event_count,
+      session_list,
+      totalCount,
+    ] = await Promise.all([
+      User.countDocuments({ userType: "student" }),
+      User.countDocuments({ userType: "counsellor" }),
+      Case.countDocuments(),
+      Session.countDocuments(),
+      Event.countDocuments(),
+      Session.find(filter)
+        .populate("form_id", "name")
+        .populate("counsellor", "name")
+        .skip(skipCount)
+        .limit(limit)
+        .sort({ _id: -1 })
+        .lean(),
+      Session.countDocuments(filter),
+    ]);
 
     const mappedData = session_list.map((session) => ({
       ...session,
-      user_name: session.form_id?.name || null,
-      counsellor_name: session.counsellor?.name || null,
+      user_name: session.form_id?.name || "N/A",
+      counsellor_name: session.counsellor?.name || "N/A",
     }));
 
-    const totalCount = await Session.countDocuments(filter);
-
-    const dashboard = {
+    const dashboardData = {
       student_count,
       counsellor_count,
       case_count,
@@ -62,7 +62,13 @@ exports.dashboard = async (req, res) => {
       session_list: mappedData,
     };
 
-    return responseHandler(res, 200, "Dashboard found", dashboard, totalCount);
+    return responseHandler(
+      res,
+      200,
+      "Dashboard retrieved successfully",
+      dashboardData,
+      totalCount
+    );
   } catch (error) {
     return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
   }

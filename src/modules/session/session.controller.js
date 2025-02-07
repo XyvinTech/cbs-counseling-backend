@@ -5,6 +5,7 @@ const Form = require("../../models/formModel");
 const Notification = require("../../models/notificationModel");
 const Session = require("../../models/sessionModel");
 const validations = require("../../validations");
+const sendMail = require("../../utils/sendMail");
 
 exports.createForm = async (req, res) => {
   try {
@@ -93,6 +94,407 @@ exports.createSession = async (req, res) => {
     });
 
     return responseHandler(res, 201, "Session created successfully", session);
+  } catch (error) {
+    return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
+  }
+};
+
+exports.getSessions = async (req, res) => {
+  try {
+    const { page, searchQuery, status, limit = 10 } = req.query;
+    page = parseInt(page);
+    limit = parseInt(limit);
+    const skipCount = limit * (page - 1);
+
+    const filter = {
+      counsellor: userId,
+    };
+    if (status) {
+      filter.status = status;
+    }
+    if (searchQuery) {
+      filter.$or = [
+        { "form_id.name": { $regex: searchQuery, $options: "i" } },
+        { "counsellor.name": { $regex: searchQuery, $options: "i" } },
+      ];
+    }
+    const sessions = await Session.find(filter)
+      .populate("form_id")
+      .populate("counsellor")
+      .populate("case_id")
+      .skip(skipCount)
+      .limit(limit)
+      .sort({ _id: -1 })
+      .lean();
+
+    const mappedData = sessions.map((item) => {
+      return {
+        ...item,
+        user_name: item.form_id.name,
+        referee: item.form_id.referee,
+        counsellor_name: item.counsellor.name,
+        caseid: item.case_id.case_id,
+      };
+    });
+
+    const count = await Session.countDocuments(filter);
+
+    return responseHandler(res, 200, "Success", mappedData, count);
+  } catch (error) {
+    return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
+  }
+};
+
+exports.acceptSession = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const updatedSession = await Session.findByIdAndUpdate(
+      id,
+      { status: "progress" },
+      { new: true }
+    )
+      .populate("form_id")
+      .populate("case_id")
+      .populate("counsellor");
+
+    if (!updatedSession) {
+      return responseHandler(res, 400, "Session acceptance failed");
+    }
+
+    if (updatedSession.case_id) {
+      await Case.findByIdAndUpdate(
+        updatedSession.case_id._id,
+        { status: "progress" },
+        { new: true }
+      );
+    }
+
+    await Notification.create({
+      user: req.userId,
+      case_id: updatedSession.case_id?._id,
+      session: updatedSession._id,
+      details: `Session with ${updatedSession.session_id} is accepted`,
+    });
+
+    const emailsToSend = [];
+    const sessionDateFormatted = moment(updatedSession.session_date).format(
+      "DD-MM-YYYY"
+    );
+    const sessionTimeRange = `${updatedSession.session_time.start}-${updatedSession.session_time.end}`;
+
+    if (updatedSession.form_id?.email) {
+      const isRefereeParentOrTeacher =
+        updatedSession.form_id.referee === "parent" ||
+        updatedSession.form_id.referee === "teacher";
+
+      const userEmailData = {
+        to: updatedSession.form_id.email,
+        subject: `Your session with Session ID: ${updatedSession.session_id} has been accepted`,
+        text: isRefereeParentOrTeacher
+          ? `Dear ${updatedSession.form_id.referee}, Your appointment request for ${updatedSession.form_id.name} has been accepted for Counselor approval.`
+          : `Dear ${updatedSession.form_id.name},
+          
+          Your appointment request for ${
+            updatedSession.counsellor.name
+          } on ${sessionDateFormatted} at ${sessionTimeRange} has been accepted by the Counselor.
+
+          Here are the session details:
+          - **Session ID**: ${updatedSession.session_id}
+          - **Case ID**: ${updatedSession.case_id?.case_id || "N/A"}
+          - **Date**: ${sessionDateFormatted}
+          - **Time**: ${sessionTimeRange}
+
+          We look forward to seeing you at the scheduled time.
+
+          Thank you.`,
+      };
+
+      emailsToSend.push(sendMail(userEmailData));
+    }
+
+    if (updatedSession.counsellor?.email) {
+      const counselorEmailData = {
+        to: updatedSession.counsellor.email,
+        subject: `Session with Session ID: ${updatedSession.session_id} has been accepted`,
+        text: `Dear ${updatedSession.counsellor.name},
+
+        The session request from ${
+          updatedSession.form_id?.name || "a user"
+        } has been accepted.
+
+        Here are the session details:
+        - **Session ID**: ${updatedSession.session_id}
+        - **Case ID**: ${updatedSession.case_id?.case_id || "N/A"}
+        - **Date**: ${sessionDateFormatted}
+        - **Time**: ${sessionTimeRange}
+        - **User**: ${updatedSession.form_id?.name || "N/A"}
+        - **User Email**: ${updatedSession.form_id?.email || "N/A"}
+
+        Please prepare for the session accordingly.
+
+        Thank you.`,
+      };
+
+      emailsToSend.push(sendMail(counselorEmailData));
+    }
+
+    await Promise.all(emailsToSend);
+
+    return responseHandler(
+      res,
+      200,
+      "Session accepted successfully",
+      updatedSession
+    );
+  } catch (error) {
+    return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
+  }
+};
+
+exports.rescheduleSession = async (req, res) => {
+  try {
+    const { session_date, session_time, c_reschedule_remark } = req.body;
+    const { id } = req.params;
+
+    if (!session_date || !session_time) {
+      return responseHandler(res, 400, "Session date & time are required");
+    }
+
+    const rescheduledSession = await Session.findByIdAndUpdate(
+      id,
+      {
+        session_date,
+        session_time,
+        c_reschedule_remark,
+        status: "progress",
+      },
+      { new: true }
+    )
+      .populate("form_id")
+      .populate("case_id")
+      .populate("counsellor");
+
+    if (!rescheduledSession) {
+      return responseHandler(
+        res,
+        404,
+        "Session not found or reschedule failed"
+      );
+    }
+
+    if (
+      rescheduledSession.status !== "pending" &&
+      rescheduledSession.status !== "rescheduled"
+    ) {
+      return responseHandler(res, 400, "You can't reschedule this session");
+    }
+
+    await Notification.create({
+      user: req.userId,
+      caseId: rescheduledSession.case_id?._id,
+      session: rescheduledSession._id,
+      details: "Your session has been rescheduled.",
+    });
+
+    const emailsToSend = [];
+    const sessionDateFormatted = moment(session_date).format("DD-MM-YYYY");
+    const oldSessionDateFormatted = moment(
+      rescheduledSession.session_date
+    ).format("DD-MM-YYYY");
+    const sessionTimeRange = `${session_time.start}-${session_time.end}`;
+    const oldSessionTimeRange = `${rescheduledSession.session_time.start}-${rescheduledSession.session_time.end}`;
+
+    if (rescheduledSession.form_id?.email) {
+      const userEmailData = {
+        to: rescheduledSession.form_id.email,
+        subject: `Your session (ID: ${rescheduledSession.session_id}, Case ID: ${rescheduledSession.case_id?.case_id}) has been rescheduled`,
+        text: `Dear ${rescheduledSession.form_id.name},
+        
+        We wanted to inform you that your appointment with ${rescheduledSession.counsellor.name}, originally scheduled for ${oldSessionDateFormatted} at ${oldSessionTimeRange}, has been rescheduled.
+
+        The new session details:
+        - **Date**: ${sessionDateFormatted}
+        - **Time**: ${sessionTimeRange}
+        
+        We apologize for any inconvenience this may cause. Please feel free to reach out if you have any questions.
+
+        Thank you for your understanding.`,
+      };
+
+      emailsToSend.push(sendMail(userEmailData));
+    }
+
+    if (rescheduledSession.counsellor?.email) {
+      const counselorEmailData = {
+        to: rescheduledSession.counsellor.email,
+        subject: "Session Rescheduled",
+        text: `Session ID: ${rescheduledSession.session_id} has been rescheduled.
+        
+        - **New Date**: ${sessionDateFormatted}
+        - **New Time**: ${sessionTimeRange}`,
+      };
+
+      emailsToSend.push(sendMail(counselorEmailData));
+    }
+
+    await Promise.all(emailsToSend);
+
+    return responseHandler(
+      res,
+      200,
+      "Session rescheduled successfully",
+      rescheduledSession
+    );
+  } catch (error) {
+    return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
+  }
+};
+
+exports.cancelSession = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { c_cancel_remark } = req.body;
+
+    const session = await Session.findByIdAndUpdate(
+      id,
+      { c_cancel_remark, status: "cancelled" },
+      { new: true }
+    )
+      .populate("case_id")
+      .populate("counsellor")
+      .populate("form_id");
+
+    if (!session) {
+      return responseHandler(res, 404, "Session not found");
+    }
+
+    const caseUpdatePromise = session.case_id
+      ? Case.findByIdAndUpdate(
+          session.case_id._id,
+          { status: "cancelled" },
+          { new: true }
+        )
+      : Promise.resolve(null);
+
+    const emailData = session.form_id?.email
+      ? {
+          to: session.form_id.email,
+          subject: `Your session (ID: ${session.session_id}, Case ID: ${session.case_id?.case_id}) has been cancelled`,
+          text: `Dear ${session.form_id.name},
+          
+          We regret to inform you that your appointment with ${
+            session.counsellor?.name
+          }, originally scheduled for ${moment(session.session_date).format(
+            "DD-MM-YYYY"
+          )} at ${session.session_time?.start}-${
+            session.session_time?.end
+          }, has been cancelled by the counselor for the following reason:
+          
+          "${c_cancel_remark}"
+
+          We apologize for any inconvenience. Please contact us if you need further assistance.`,
+        }
+      : null;
+
+    await Promise.all([
+      caseUpdatePromise,
+      emailData ? sendMail(emailData) : Promise.resolve(),
+    ]);
+
+    return responseHandler(res, 200, "Session cancelled successfully");
+  } catch (error) {
+    return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
+  }
+};
+
+exports.getSession = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const session = await Session.findById(id)
+      .populate("form_id")
+      .populate("case_id")
+      .populate({
+        path: "case_id",
+        populate: {
+          path: "referer",
+          select: "name",
+        },
+      })
+      .populate("counsellor");
+    if (session) {
+      return responseHandler(res, 200, "Session found", session);
+    }
+    return responseHandler(res, 404, "Session not found");
+  } catch (error) {
+    return responseHandler(res, 500, `Internal Server Error ${error.message}`);
+  }
+};
+
+exports.getCases = async (req, res) => {
+  try {
+    const { searchQuery, status } = req.query;
+
+    const sessions = await Session.find({ counsellor: req.userId });
+    const sessionIds = sessions.map((session) => session._id);
+    const filter = {
+      session_ids: { $in: sessionIds },
+    };
+    if (status) {
+      filter.status = status;
+    }
+    if (searchQuery) {
+      filter.$or = [{ "form_id.name": { $regex: searchQuery, $options: "i" } }];
+    }
+
+    const cases = await Case.find(filter)
+      .populate("session_ids")
+      .populate("form_id");
+    const mappedData = cases.map((item) => {
+      return {
+        ...item._doc,
+        user_name: item.form_id.name,
+        session_time: item.session_ids.length
+          ? item.session_ids[item.session_ids.length - 1].session_time
+          : null,
+        type: item.session_ids.length
+          ? item.session_ids[item.session_ids.length - 1].type
+          : null,
+        session_count: item.session_ids.length,
+      };
+    });
+    const totalCount = await Case.countDocuments(filter);
+    return responseHandler(res, 200, "Cases found", mappedData, totalCount);
+  } catch (error) {
+    return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
+  }
+};
+
+exports.getRemark = async (req, res) => {
+  try {
+    const { searchQuery, status } = req.query;
+    const filter = {
+      referer: req.userId,
+    };
+    if (status) {
+      filter.status = status;
+    }
+    if (searchQuery) {
+      filter.$or = [{ "form_id.name": { $regex: searchQuery, $options: "i" } }];
+    }
+    const sessions = await Case.find(filter)
+      .populate("session_ids")
+      .populate("form_id");
+    const mappedData = sessions.map((item) => {
+      return {
+        ...item._doc,
+        user_name: item.form_id.name,
+        couselling_type: item.session_ids[item.session_ids.length - 1].type,
+        description: item.session_ids[item.session_ids.length - 1].description,
+      };
+    });
+    const totalCount = await Case.countDocuments(filter);
+    return responseHandler(res, 200, "Remark found", mappedData, totalCount);
   } catch (error) {
     return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
   }
