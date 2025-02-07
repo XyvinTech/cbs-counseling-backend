@@ -190,22 +190,30 @@ exports.getUsers = async (req, res) => {
     const skipCount = limit * (page - 1);
 
     const filter = {};
+
     if (searchQuery) {
       filter.$or = [
-        { name: new RegExp(searchQuery, "i") },
-        { email: new RegExp(searchQuery, "i") },
-        { mobile: new RegExp(searchQuery, "i") },
+        { name: { $regex: searchQuery, $options: "i" } },
+        { email: { $regex: searchQuery, $options: "i" } },
+        { mobile: { $regex: searchQuery, $options: "i" } },
       ];
     }
+
     if (type) {
       filter.userType = type;
     }
+
     const count = await User.countDocuments(filter);
-    const users = await User.find(filter)
+    const query = User.find(filter)
+      .sort({ _id: -1 })
       .select("-password -otp")
-      .sort({ createdAt: -1 })
-      .skip(skipCount)
-      .limit(limit);
+      .lean();
+    if (limit !== "all") {
+      query.skip(skipCount).limit(limit);
+    }
+
+    const users = await query.exec();
+
     return responseHandler(res, 200, "Success", users, count);
   } catch (error) {
     return responseHandler(res, 500, `Internal Server Error ${error.message}`);

@@ -5,7 +5,12 @@ const router = express.Router();
 
 router.use(authVerify);
 
-router.route("/").post(type.createCounsellingType).delete(type.bulkDelete);
+router
+  .route("/")
+  .post(type.createCounsellingType)
+  .delete(type.bulkDelete)
+  .get(type.getCounsellingTypes);
+
 router
   .route("/:id")
   .put(type.updateCounsellingType)

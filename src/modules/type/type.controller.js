@@ -99,3 +99,12 @@ exports.bulkDelete = async (req, res) => {
     return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
   }
 };
+
+exports.getCounsellingTypes = async (req, res) => {
+  try {
+    const types = await Type.find();
+    return responseHandler(res, 200, "Success", types, types.length);
+  } catch (error) {
+    return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
+  }
+};

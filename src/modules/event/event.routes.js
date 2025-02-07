@@ -5,7 +5,11 @@ const router = express.Router();
 
 router.use(authVerify);
 
-router.route("/").post(event.createEvent).delete(event.bulkDelete);
+router
+  .route("/")
+  .post(event.createEvent)
+  .delete(event.bulkDelete)
+  .get(event.getEvents);
 router.route("/:id").put(event.editEvent).delete(event.deleteEvent);
 
 module.exports = router;

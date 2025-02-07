@@ -167,3 +167,29 @@ exports.bulkDelete = async (req, res) => {
     return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
   }
 };
+
+exports.getEvents = async (req, res) => {
+  try {
+    const { page, searchQuery, limit = 10 } = req.query;
+    page = parseInt(page);
+    limit = parseInt(limit);
+    const skipCount = limit * (page - 1);
+
+    const filter = {};
+
+    if (searchQuery) {
+      filter.$or = [{ title: { $regex: searchQuery, $options: "i" } }];
+    }
+
+    const count = await Event.countDocuments(filter);
+    const events = await Event.find(filter)
+      .skip(skipCount)
+      .limit(limit)
+      .sort({ _id: -1 })
+      .lean();
+
+    return responseHandler(res, 200, "Success", events, count);
+  } catch (error) {
+    return responseHandler(res, 500, `Internal Server Error ${error.message}`);
+  }
+};
