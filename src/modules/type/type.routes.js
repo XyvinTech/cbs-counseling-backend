@@ -12,7 +12,7 @@ router
   .get(type.getCounsellingTypes);
 
 router
-  .route("/:id")
+  .route("/:id").get(type.getCounsellingType)
   .put(type.updateCounsellingType)
   .delete(type.deleteCounsellingType);
 

@@ -12,6 +12,10 @@ router
   .get(event.getEvents);
 
 router.route("/calender").get(event.getCalender);
-router.route("/:id").put(event.editEvent).delete(event.deleteEvent);
+router
+  .route("/:id")
+  .put(event.editEvent)
+  .delete(event.deleteEvent)
+  .get(event.getEvent);
 
 module.exports = router;

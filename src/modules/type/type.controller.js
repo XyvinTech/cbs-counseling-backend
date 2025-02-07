@@ -108,3 +108,18 @@ exports.getCounsellingTypes = async (req, res) => {
     return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
   }
 };
+
+exports.getCounsellingType = async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!id) {
+      return responseHandler(res, 400, "Counselling type ID is required");
+    }
+    const type = await Type.findById(id);
+    if (type) {
+      return responseHandler(res, 200, "Success", type);
+    }
+  } catch (error) {
+    return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
+  }
+};

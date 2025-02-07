@@ -212,3 +212,18 @@ exports.getCalender = async (req, res) => {
     return responseHandler(res, 500, `Internal Server Error ${error.message}`);
   }
 };
+
+exports.getEvent = async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!id) {
+      return responseHandler(res, 400, "Event ID is required");
+    }
+    const event = await Event.findById(id);
+    if (event) {
+      return responseHandler(res, 200, "Success", event);
+    }
+  } catch (error) {
+    return responseHandler(res, 500, `Internal Server Error ${error.message}`);
+  }
+};
