@@ -182,7 +182,7 @@ exports.getEvents = async (req, res) => {
     }
 
     const count = await Event.countDocuments(filter);
-    const events = await Event.find(filter)
+    const events = await Event.find(filter).populate("creator", "name")
       .skip(skipCount)
       .limit(limit)
       .sort({ _id: -1 })
