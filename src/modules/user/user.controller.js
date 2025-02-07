@@ -181,3 +181,33 @@ exports.bulkDelete = async (req, res) => {
     return responseHandler(res, 500, `Internal Server Error ${error.message}`);
   }
 };
+
+exports.getUsers = async (req, res) => {
+  try {
+    const { type, page, searchQuery, limit = 10 } = req.query;
+    page = parseInt(page);
+    limit = parseInt(limit);
+    const skipCount = limit * (page - 1);
+
+    const filter = {};
+    if (searchQuery) {
+      filter.$or = [
+        { name: new RegExp(searchQuery, "i") },
+        { email: new RegExp(searchQuery, "i") },
+        { mobile: new RegExp(searchQuery, "i") },
+      ];
+    }
+    if (type) {
+      filter.userType = type;
+    }
+    const count = await User.countDocuments(filter);
+    const users = await User.find(filter)
+      .select("-password -otp")
+      .sort({ createdAt: -1 })
+      .skip(skipCount)
+      .limit(limit);
+    return responseHandler(res, 200, "Success", users, count);
+  } catch (error) {
+    return responseHandler(res, 500, `Internal Server Error ${error.message}`);
+  }
+};

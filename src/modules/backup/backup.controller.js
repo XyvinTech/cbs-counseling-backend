@@ -1,17 +1,11 @@
 const archiver = require("archiver");
 const responseHandler = require("../../helpers/responseHandler");
-const Church = require("../../models/churchModel");
-const Plan = require("../../models/planModel");
-const Subscription = require("../../models/subscriptionModel");
 const User = require("../../models/userModel");
 
 exports.createBackup = async (req, res) => {
   try {
     const [users, churches, plans, subscriptions] = await Promise.all([
       User.find(),
-      Church.find(),
-      Plan.find(),
-      Subscription.find(),
     ]);
 
     res.setHeader("Content-Type", "application/zip");

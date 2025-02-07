@@ -39,7 +39,7 @@ app.get(BASE_PATH, (req, res) => {
 app.use(`${BASE_PATH}/auth`, authRoutes);
 app.use(`${BASE_PATH}/users`, userRoutes);
 app.use(`${BASE_PATH}/counselling-type`, typeRoutes);
-app.use(`${BASE_PATH}/backup`, backupRoutes);
+// app.use(`${BASE_PATH}/backup`, backupRoutes);
 app.use(`${BASE_PATH}/dashboard`, dashboardRoutes);
 
 //* Serve static files (e.g., PDFs) from the 'public' folder
