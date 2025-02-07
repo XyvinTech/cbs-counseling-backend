@@ -499,3 +499,78 @@ exports.getRemark = async (req, res) => {
     return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
   }
 };
+
+exports.getNotifications = async (req, res) => {
+  try {
+    const notifications = await Notification.find({
+      user: req.userId,
+      isRead: false,
+    });
+
+    if (!notifications || notifications.length === 0) {
+      return responseHandler(res, 400, `No Notification found`);
+    }
+
+    await Notification.updateMany(
+      { user: req.userId, isRead: false },
+      { $set: { isRead: true } }
+    );
+
+    return responseHandler(res, 200, `Notifications Found`, notifications);
+  } catch (error) {
+    return responseHandler(res, 500, `Internal Server Error ${error.message}`);
+  }
+};
+
+exports.getSessionsWithCaseId = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const sessions = await Session.find({ case_id: id })
+      .populate("form_id")
+      .populate("counsellor");
+
+    const mappedData = sessions.map((session) => {
+      return {
+        ...session._doc,
+        user_name: session.form_id.name,
+        counsellor_name: session.counsellor.name,
+      };
+    });
+
+    return responseHandler(res, 200, "Sessions found", mappedData);
+  } catch (error) {
+    return responseHandler(res, 500, `Internal Server Error ${error.message}`);
+  }
+};
+
+exports.addRemark = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { remark } = req.body;
+
+    const findCase = await Case.findById(id);
+    const remarks = findCase.referer_remark;
+    const counsellor = await User.findById(req.userId);
+    const referee_remark = {
+      name: counsellor.name,
+      remark: remark,
+    };
+    let updatedRemarks = [];
+    if (remarks === null) {
+      updatedRemarks.push(referee_remark);
+    } else {
+      updatedRemarks = [...remarks, referee_remark];
+    }
+    findCase.referer_remark.push(referee_remark);
+    const updateRemark = await findCase.save();
+    if (!updateRemark) return responseHandler(res, 400, "Remark update failed");
+    return responseHandler(
+      res,
+      200,
+      "Remark updated successfully",
+      updateRemark
+    );
+  } catch (error) {
+    return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
+  }
+};
