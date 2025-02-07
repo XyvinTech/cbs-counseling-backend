@@ -235,3 +235,26 @@ exports.getStudent = async (req, res) => {
     return responseHandler(res, 500, `Internal Server Error ${error.message}`);
   }
 };
+
+exports.getCounsellors = async (req, res) => {
+  try {
+    const { counsellorType } = req.query;
+    const counsellors = await User.find({
+      counsellorType: { $in: [counsellorType] },
+    });
+    const mappedData = counsellors.map((counsellor) => {
+      return {
+        id: counsellor._id,
+        name: counsellor.name,
+        email: counsellor.email,
+        type: counsellor.counsellorType,
+      };
+    });
+    if (counsellors.length > 0) {
+      return responseHandler(res, 200, "Counsellors found", mappedData);
+    }
+    return responseHandler(res, 404, "No counsellors found");
+  } catch (error) {
+    return responseHandler(res, 500, `Internal Server Error ${error.message}`);
+  }
+};

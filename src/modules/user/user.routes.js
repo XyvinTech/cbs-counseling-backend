@@ -4,6 +4,7 @@ const authVerify = require("../../middlewares/authVerify");
 const router = express.Router();
 
 router.get("/student/:gr", user.getStudent);
+router.get("/counsellors", user.getCounsellors);
 router.use(authVerify);
 router.route("/").post(user.createUser).get(user.getProfile);
 router.route("/bulk").post(user.bulkCreate).delete(user.bulkDelete);
