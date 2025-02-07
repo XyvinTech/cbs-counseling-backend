@@ -4,6 +4,8 @@ const cors = require("cors");
 const volleyball = require("volleyball");
 const clc = require("cli-color");
 const path = require("path");
+const multer = require("multer");
+const fs = require("fs");
 const responseHandler = require("./src/helpers/responseHandler");
 const userRoutes = require("./src/modules/user/user.routes");
 const authRoutes = require("./src/modules/auth/auth.routes");
@@ -44,11 +46,45 @@ app.use(`${BASE_PATH}/backup`, backupRoutes);
 app.use(`${BASE_PATH}/dashboard`, dashboardRoutes);
 app.use(`${BASE_PATH}/events`, eventRoutes);
 
-//* Serve static files (e.g., PDFs) from the 'public' folder
-app.use("/public", express.static(path.join(__dirname, "public")));
+//* Define the directory where the files will be uploaded
+const uploadDir = "C:/cbs_school_files";
+//* Serve static files from the cbs_school folder
+app.use("/images", express.static(uploadDir));
 
-app.all("*", (req, res) => {
-  return responseHandler(res, 404, "No API Found..!");
+//* Ensure the directory exists, if not, create it
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+//! Set up multer storage configuration
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + "-" + file.originalname);
+  },
+});
+
+//* Set up multer middleware
+const upload = multer({
+  storage,
+  fileFilter: (req, file, cb) => {
+    cb(null, true); // Accept all file types
+  },
+});
+
+//* Create a simple POST route for file upload
+app.post(`${BASE_PATH}/upload`, upload.single("file"), (req, res) => {
+  if (!req.file) {
+    return res.status(400).send("No file uploaded.");
+  }
+  return responseHandler(
+    res,
+    200,
+    "File uploaded successfully",
+    req.file.filename
+  );
 });
 
 app.listen(PORT, () => {
