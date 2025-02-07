@@ -101,7 +101,7 @@ exports.createSession = async (req, res) => {
 
 exports.getSessions = async (req, res) => {
   try {
-    const { page, searchQuery, status, limit = 10 } = req.query;
+    let { page, searchQuery, status, limit = 10 } = req.query;
     page = parseInt(page);
     limit = parseInt(limit);
     const skipCount = limit * (page - 1);

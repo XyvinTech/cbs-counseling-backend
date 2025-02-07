@@ -184,7 +184,7 @@ exports.bulkDelete = async (req, res) => {
 
 exports.getUsers = async (req, res) => {
   try {
-    const { type, page, searchQuery, limit = 10 } = req.query;
+    let { type, page, searchQuery, limit = 10 } = req.query;
     page = parseInt(page);
     limit = parseInt(limit);
     const skipCount = limit * (page - 1);
