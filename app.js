@@ -13,6 +13,8 @@ const backupRoutes = require("./src/modules/backup/backup.routes");
 const dashboardRoutes = require("./src/modules/dashboard/dashboard.routes");
 const typeRoutes = require("./src/modules/type/type.routes");
 const eventRoutes = require("./src/modules/event/event.routes");
+const sessionRoute = require("./src/modules/session/session.routes");
+const timeRoute = require("./src/modules/time/time.routes");
 
 //! Create an instance of the Express application
 const app = express();
@@ -45,6 +47,8 @@ app.use(`${BASE_PATH}/counselling-type`, typeRoutes);
 app.use(`${BASE_PATH}/backup`, backupRoutes);
 app.use(`${BASE_PATH}/dashboard`, dashboardRoutes);
 app.use(`${BASE_PATH}/events`, eventRoutes);
+app.use(`${BASE_PATH}/sessions`, sessionRoute);
+app.use(`${BASE_PATH}/times`, timeRoute);
 
 //* Define the directory where the files will be uploaded
 const uploadDir = "C:/cbs_school_files";
