@@ -1,4 +1,5 @@
 const responseHandler = require("../../helpers/responseHandler");
+const fs = require("fs");
 const Event = require("../../models/eventModel");
 const validations = require("../../validations");
 
@@ -182,7 +183,8 @@ exports.getEvents = async (req, res) => {
     }
 
     const count = await Event.countDocuments(filter);
-    const events = await Event.find(filter).populate("creator", "name")
+    const events = await Event.find(filter)
+      .populate("creator", "name")
       .skip(skipCount)
       .limit(limit)
       .sort({ _id: -1 })
@@ -219,7 +221,7 @@ exports.getEvent = async (req, res) => {
     if (!id) {
       return responseHandler(res, 400, "Event ID is required");
     }
-    const event = await Event.findById(id).populate("creator", "name")
+    const event = await Event.findById(id).populate("creator", "name");
     if (event) {
       return responseHandler(res, 200, "Success", event);
     }
