@@ -219,3 +219,19 @@ exports.getUsers = async (req, res) => {
     return responseHandler(res, 500, `Internal Server Error ${error.message}`);
   }
 };
+
+exports.getStudent = async (req, res) => {
+  try {
+    const gr = req.params.gr;
+    if (!gr) {
+      return responseHandler(res, 400, "User ID is required");
+    }
+    const findStudent = await User.findOne({ StudentReferencesCode: gr });
+    if (!findStudent) {
+      return responseHandler(res, 404, "User not found");
+    }
+    return responseHandler(res, 200, "User found", findStudent);
+  } catch (error) {
+    return responseHandler(res, 500, `Internal Server Error ${error.message}`);
+  }
+};
