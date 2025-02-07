@@ -1,5 +1,6 @@
 const responseHandler = require("../../helpers/responseHandler");
 const fs = require("fs");
+const path = require("path");
 const Event = require("../../models/eventModel");
 const validations = require("../../validations");
 
