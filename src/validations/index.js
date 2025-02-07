@@ -85,3 +85,22 @@ exports.editEventSchema = Joi.object({
   details: Joi.string(),
   requisition_description: Joi.string().allow(""),
 });
+
+exports.formSchema = Joi.object({
+  name: Joi.string().required(),
+  grNumber: Joi.string().required(),
+  referee: Joi.string().required(),
+  refereeName: Joi.string(),
+  email: Joi.string().email().required(),
+  class: Joi.string().required(),
+});
+
+exports.createSessionSchema = Joi.object({
+  form_id: Joi.string().required(),
+  session_date: Joi.date().required(),
+  session_time: Joi.object().required(),
+  type: Joi.string().required(),
+  counsellor: Joi.string().required(),
+  description: Joi.string(),
+  report: Joi.string(),
+});

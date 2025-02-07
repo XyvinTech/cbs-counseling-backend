@@ -10,6 +10,7 @@ const authRoutes = require("./src/modules/auth/auth.routes");
 const backupRoutes = require("./src/modules/backup/backup.routes");
 const dashboardRoutes = require("./src/modules/dashboard/dashboard.routes");
 const typeRoutes = require("./src/modules/type/type.routes");
+const eventRoutes = require("./src/modules/event/event.routes");
 
 //! Create an instance of the Express application
 const app = express();
@@ -39,8 +40,9 @@ app.get(BASE_PATH, (req, res) => {
 app.use(`${BASE_PATH}/auth`, authRoutes);
 app.use(`${BASE_PATH}/users`, userRoutes);
 app.use(`${BASE_PATH}/counselling-type`, typeRoutes);
-// app.use(`${BASE_PATH}/backup`, backupRoutes);
+app.use(`${BASE_PATH}/backup`, backupRoutes);
 app.use(`${BASE_PATH}/dashboard`, dashboardRoutes);
+app.use(`${BASE_PATH}/events`, eventRoutes);
 
 //* Serve static files (e.g., PDFs) from the 'public' folder
 app.use("/public", express.static(path.join(__dirname, "public")));

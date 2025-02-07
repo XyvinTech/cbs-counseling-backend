@@ -6,7 +6,7 @@ const userSchema = mongoose.Schema(
     email: { type: String, trim: true, lowercase: true },
     password: { type: String, trim: true },
     mobile: { type: String, trim: true },
-    status: { type: Boolean, default: false },
+    status: { type: Boolean, default: true },
     otp: { type: String },
     userType: {
       type: String,
