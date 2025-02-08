@@ -574,3 +574,218 @@ exports.addRemark = async (req, res) => {
     return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
   }
 };
+
+exports.getSessionsWithFormId = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { page = 1, searchQuery = "", limit = 10 } = req.query;
+
+    const skipCount = (page - 1) * limit;
+
+    const match = {};
+    if (userId) {
+      match["form_id.grNumber"] = userId;
+    }
+
+    if (searchQuery) {
+      match.$or = [
+        { "form_id.name": { $regex: searchQuery, $options: "i" } },
+        { "counsellor.name": { $regex: searchQuery, $options: "i" } },
+      ];
+    }
+
+    const pipeline = [
+      { $sort: { _id: -1 } },
+      { $skip: skipCount },
+      { $limit: parseInt(limit) },
+      {
+        $lookup: {
+          from: "forms",
+          localField: "form_id",
+          foreignField: "_id",
+          as: "form_id",
+        },
+      },
+      { $match: match },
+      {
+        $lookup: {
+          from: "users",
+          localField: "counsellor",
+          foreignField: "_id",
+          as: "counsellor",
+        },
+      },
+      {
+        $unwind: { path: "$form_id", preserveNullAndEmptyArrays: true },
+      },
+      {
+        $unwind: { path: "$counsellor", preserveNullAndEmptyArrays: true },
+      },
+      {
+        $project: {
+          id: "$_id",
+          session_date: 1,
+          session_time: 1,
+          name: "$form_id.name",
+          counsellor_name: "$counsellor.name",
+          counsellor_type: "$counsellor.counsellorType",
+        },
+      },
+    ];
+
+    const sessions = await Session.aggregate(pipeline);
+
+    const totalCountPipeline = [{ $match: match }, { $count: "totalCount" }];
+    const totalCountResult = await Session.aggregate(totalCountPipeline);
+    const totalCount = totalCountResult[0]?.totalCount || 0;
+
+    return responseHandler(res, 200, "Sessions found", sessions, totalCount);
+  } catch (error) {
+    return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
+  }
+};
+
+exports.getSessionsWithCounsellorId = async (req, res) => {
+  try {
+    const userId = req.params.counsellorId;
+    const { page, searchQuery, limit = 10 } = req.query;
+    const skipCount = 10 * (page - 1);
+    const filter = {
+      counsellor: userId,
+    };
+    if (searchQuery) {
+      filter.$or = [
+        { "form_id.name": { $regex: searchQuery, $options: "i" } },
+        { "counsellor.name": { $regex: searchQuery, $options: "i" } },
+      ];
+    }
+    const sessions = await Session.find(filter)
+      .populate("form_id")
+      .populate("counsellor")
+      .skip(skipCount)
+      .limit(limit)
+      .sort({ _id: -1 })
+      .lean();
+    const mappedData = sessions.map((session) => {
+      return {
+        _id: session._id,
+        session_id: session.session_id,
+        session_date: session.session_date,
+        session_time: session.session_time,
+        student_name: session.form_id.name,
+        counsellor_type: session.type,
+        status: session.status,
+      };
+    });
+
+    const totalCount = await Session.countDocuments(filter);
+    return responseHandler(res, 200, "Sessions found", mappedData, totalCount);
+  } catch (error) {
+    return responseHandler(res, 500, `Internal Server Error ${error.message}`);
+  }
+};
+
+exports.getCasesWithCounsellorId = async (req, res) => {
+  try {
+    const userId = req.params.counsellorId;
+    const { page = 1, searchQuery = "", limit = 10 } = req.query;
+
+    const skipCount = (page - 1) * limit;
+
+    const pipeline = [
+      {
+        $lookup: {
+          from: "sessions",
+          localField: "session_ids",
+          foreignField: "_id",
+          as: "sessions",
+        },
+      },
+      {
+        $match: {
+          "sessions.counsellor": new mongoose.Types.ObjectId(userId),
+        },
+      },
+      {
+        $lookup: {
+          from: "forms",
+          localField: "form_id",
+          foreignField: "_id",
+          as: "form",
+        },
+      },
+      {
+        $unwind: { path: "$form", preserveNullAndEmptyArrays: false },
+      },
+      ...(searchQuery
+        ? [
+            {
+              $match: {
+                "form.name": { $regex: searchQuery, $options: "i" },
+              },
+            },
+          ]
+        : []),
+      { $sort: { _id: -1 } },
+      { $skip: skipCount },
+      { $limit: parseInt(limit) },
+      {
+        $project: {
+          id: "$_id",
+          case_id: 1,
+          case_date: "$createdAt",
+          case_time: "$createdAt",
+          student_name: "$form.name",
+          status: 1,
+        },
+      },
+    ];
+
+    const cases = await Case.aggregate(pipeline);
+
+    const totalCountPipeline = [
+      {
+        $lookup: {
+          from: "sessions",
+          localField: "session_ids",
+          foreignField: "_id",
+          as: "sessions",
+        },
+      },
+      {
+        $match: {
+          "sessions.counsellor": new mongoose.Types.ObjectId(userId),
+          isDeleted: false,
+        },
+      },
+      {
+        $lookup: {
+          from: "forms",
+          localField: "form_id",
+          foreignField: "_id",
+          as: "form",
+        },
+      },
+      {
+        $unwind: { path: "$form", preserveNullAndEmptyArrays: false },
+      },
+      ...(searchQuery
+        ? [
+            {
+              $match: {
+                "form.name": { $regex: searchQuery, $options: "i" },
+              },
+            },
+          ]
+        : []),
+      { $count: "totalCount" },
+    ];
+
+    const totalCountResult = await Case.aggregate(totalCountPipeline);
+    const totalCount = totalCountResult[0]?.totalCount || 0;
+
+    return responseHandler(res, 200, "Cases found", cases, totalCount);
+  } catch (error) {
+    return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
+  }
+};

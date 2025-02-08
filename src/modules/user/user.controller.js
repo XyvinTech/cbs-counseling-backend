@@ -81,7 +81,7 @@ exports.updateUser = async (req, res) => {
 
 exports.getUser = async (req, res) => {
   try {
-    const user = await User.findById(req.params.id);
+    const user = await User.findById(req.params.id).populate("");
     return responseHandler(res, 200, "Success", user);
   } catch (error) {
     return responseHandler(res, 500, `Internal Server Error ${error.message}`);
