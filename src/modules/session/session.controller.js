@@ -442,7 +442,7 @@ exports.getCases = async (req, res) => {
       query.counsellor = req.userId;
     }
 
-    const sessions = await Session.find(query);
+    const sessions = await Session.find(query).populate("counsellor");
     const sessionIds = sessions.map((session) => session._id);
     const filter = {
       session_ids: { $in: sessionIds },
@@ -461,6 +461,9 @@ exports.getCases = async (req, res) => {
       return {
         ...item._doc,
         user_name: item.form_id.name,
+        counsellor_name: sessions
+          ?.map((session) => session.counsellor.name)
+          .join(", "),
         session_time: item.session_ids.length
           ? item.session_ids[item.session_ids.length - 1].session_time
           : null,
