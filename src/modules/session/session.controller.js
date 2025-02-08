@@ -436,7 +436,13 @@ exports.getCases = async (req, res) => {
   try {
     const { searchQuery, status } = req.query;
 
-    const sessions = await Session.find({ counsellor: req.userId });
+    const query = {};
+
+    if (req.user.userType === "counsellor") {
+      query.counsellor = req.userId;
+    }
+
+    const sessions = await Session.find(query);
     const sessionIds = sessions.map((session) => session._id);
     const filter = {
       session_ids: { $in: sessionIds },
