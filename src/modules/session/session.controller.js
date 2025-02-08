@@ -465,14 +465,22 @@ exports.getCases = async (req, res) => {
     }
 
     const cases = await Case.find(filter)
-      .populate("session_ids")
+      .populate({
+        path: "session_ids",
+        populate: {
+          path: "counsellor",
+          select: "name",
+        },
+      })
       .populate("form_id");
     const mappedData = cases.map((item) => {
       return {
         ...item._doc,
         user_name: item.form_id.name,
         counsellor_name: [
-          ...new Set(sessions?.map((session) => session.counsellor.name)),
+          ...new Set(
+            item.session_ids?.map((session) => session.counsellor.name)
+          ),
         ].join(", "),
         session_time: item.session_ids.length
           ? item.session_ids[item.session_ids.length - 1].session_time
