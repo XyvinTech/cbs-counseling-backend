@@ -242,7 +242,7 @@ exports.getCounsellors = async (req, res) => {
     });
     const mappedData = counsellors.map((counsellor) => {
       return {
-        id: counsellor._id,
+        _id: counsellor._id,
         name: counsellor.name,
         email: counsellor.email,
         type: counsellor.counsellorType,
