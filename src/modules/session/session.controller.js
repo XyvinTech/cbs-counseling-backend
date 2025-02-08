@@ -7,6 +7,7 @@ const Session = require("../../models/sessionModel");
 const validations = require("../../validations");
 const sendMail = require("../../utils/sendMail");
 const mongoose = require("mongoose");
+const User = require("../../models/userModel");
 
 exports.createForm = async (req, res) => {
   try {
@@ -107,9 +108,12 @@ exports.getSessions = async (req, res) => {
     limit = parseInt(limit);
     const skipCount = limit * (page - 1);
 
-    const filter = {
-      counsellor: req.userId,
-    };
+    const filter = {};
+
+    if (req.user.userType === "counsellor") {
+      filter.counsellor = req.userId;
+    }
+
     if (status) {
       filter.status = status;
     }
@@ -422,7 +426,13 @@ exports.getSession = async (req, res) => {
           select: "name",
         },
       })
-      .populate("counsellor");
+      .populate("counsellor")
+      .lean();
+    const student = await User.findOne({
+      StudentReferencesCode: session.form_id?.grNumber,
+    });
+    session.form_id.gender = student?.gender;
+    session.form_id.mobile = student?.mobile;
     if (session) {
       return responseHandler(res, 200, "Session found", session);
     }
