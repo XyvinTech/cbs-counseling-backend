@@ -108,7 +108,7 @@ exports.getSessions = async (req, res) => {
     const skipCount = limit * (page - 1);
 
     const filter = {
-      counsellor: userId,
+      counsellor: req.userId,
     };
     if (status) {
       filter.status = status;
