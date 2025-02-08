@@ -6,6 +6,7 @@ const Notification = require("../../models/notificationModel");
 const Session = require("../../models/sessionModel");
 const validations = require("../../validations");
 const sendMail = require("../../utils/sendMail");
+const mongoose = require("mongoose");
 
 exports.createForm = async (req, res) => {
   try {
@@ -788,4 +789,380 @@ exports.getCasesWithCounsellorId = async (req, res) => {
   } catch (error) {
     return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
   }
+};
+
+exports.addEntry = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      details,
+      close,
+      refer,
+      date,
+      time,
+      session_id,
+      form_id,
+      concern_raised,
+      interactions,
+      reason_for_closing,
+      with_session,
+      report,
+      isEditable,
+    } = req.body;
+
+    const createSessionValidator =
+      validations.createSessionEntrySchema.validate(req.body, {
+        abortEarly: true,
+      });
+    if (createSessionValidator.error) {
+      return responseHandler(
+        res,
+        400,
+        `Invalid input: ${createSessionValidator.error}`
+      );
+    }
+
+    const checkSession = await Session.findById(session_id)
+      .populate("case_id")
+      .populate("counsellor")
+      .populate("form_id");
+
+    if (isEditable) {
+      const updateSession = await updateSessionDetails(
+        session_id,
+        details,
+        interactions,
+        report
+      );
+      return responseHandler(
+        res,
+        200,
+        "Session updated successfully",
+        updateSession
+      );
+    }
+
+    if (close) {
+      const closeCase = await closeCaseAndSession(
+        id,
+        session_id,
+        details,
+        interactions,
+        concern_raised,
+        reason_for_closing,
+        report
+      );
+      if (!closeCase) return responseHandler(res, 400, "Case close failed");
+      return responseHandler(res, 200, "Case closed successfully", closeCase);
+    }
+
+    if (refer && with_session) {
+      const session = await handleReferralWithSession(
+        id,
+        session_id,
+        refer,
+        details,
+        interactions,
+        concern_raised,
+        date,
+        time,
+        form_id,
+        checkSession,
+        report
+      );
+      return responseHandler(res, 201, "Session created successfully", session);
+    } else if (refer) {
+      await handleReferralWithoutSession(
+        id,
+        session_id,
+        refer,
+        details,
+        interactions,
+        concern_raised,
+        checkSession,
+        report
+      );
+      return responseHandler(res, 200, "Case referred successfully");
+    }
+
+    await Session.findByIdAndUpdate(
+      session_id,
+      { case_details: details, interactions, status: "completed", report },
+      { new: true }
+    );
+
+    const fetchCase = await Case.findById(id);
+    if (!fetchCase) return responseHandler(res, 404, "Case not found");
+
+    const sc_id = `${fetchCase.case_id}/SC_${String(
+      fetchCase.session_ids.length + 1
+    ).padStart(2, "0")}`;
+    const sessionData = {
+      form_id: form_id,
+      session_date: date,
+      type: checkSession.type,
+      session_time: time,
+      description: checkSession.description,
+      counsellor: req.userId,
+      status: "progress",
+      session_id: sc_id,
+      case_id: id,
+      report,
+    };
+
+    const newSessionRes = await createNewSession(sessionData);
+    if (!newSessionRes)
+      return responseHandler(res, 400, "Session creation failed");
+
+    const upCase = await updateCaseWithSession(
+      id,
+      newSessionRes.id,
+      concern_raised
+    );
+    const resSession = await Session.findById(newSessionRes._id)
+      .populate("form_id")
+      .populate("counsellor");
+
+    await sendEmailNotification(
+      resSession.form_id.email,
+      `Your session requested with Session ID: ${resSession.session_id} and Case ID: ${upCase.case_id} for ${resSession.counsellor.name}`,
+      `Dear ${resSession.form_id.name},\n\nYour appointment request for ${
+        resSession.counsellor.name
+      } for ${moment(resSession.session_date).format("DD-MM-YYYY")} at ${
+        resSession.session_time.start
+      }-${
+        resSession.session_time.end
+      } has been sent to the Counselor for approval. We will inform you through an email once your request has been approved by the Counselor.`
+    );
+
+    await createNotification(
+      resSession.counsellor._id,
+      upCase._id,
+      resSession._id,
+      "New session requested"
+    );
+
+    await sendEmailNotification(
+      resSession.counsellor.email,
+      `You have a new session requested with Session ID: ${resSession.session_id} and Case ID: ${upCase.case_id} from ${resSession.form_id.name}`,
+      `Dear ${
+        resSession.counsellor.name
+      },\n\nYou have received an appointment request from ${
+        resSession.form_id.name
+      } for ${moment(resSession.session_date).format("DD-MM-YYYY")} at ${
+        resSession.session_time.start
+      }-${
+        resSession.session_time.end
+      }. The request has been sent to you for approval. We will notify you via email once the request has been approved.`
+    );
+
+    return responseHandler(
+      res,
+      201,
+      "Session created successfully",
+      newSessionRes
+    );
+  } catch (error) {
+    return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
+  }
+};
+
+const updateSessionDetails = async (
+  session_id,
+  details,
+  interactions,
+  report
+) => {
+  return await Session.findByIdAndUpdate(
+    session_id,
+    { case_details: details, interactions, report },
+    { new: true }
+  );
+};
+
+const closeCaseAndSession = async (
+  id,
+  session_id,
+  details,
+  interactions,
+  concern_raised,
+  reason_for_closing,
+  report
+) => {
+  const closeCase = await Case.findByIdAndUpdate(
+    id,
+    { concern_raised, reason_for_closing, status: "completed" },
+    { new: true }
+  );
+
+  await Session.findByIdAndUpdate(
+    session_id,
+    { case_details: details, interactions, status: "completed", report },
+    { new: true }
+  );
+
+  return closeCase;
+};
+
+const createNewSession = async (data) => {
+  return await Session.create(data);
+};
+
+const updateCaseWithSession = async (id, session_id, concern_raised) => {
+  const fetchCase = await Case.findById(id);
+  return await Case.findByIdAndUpdate(
+    id,
+    {
+      session_ids: [
+        ...fetchCase.session_ids.map((session) => session),
+        session_id,
+      ],
+      concern_raised: concern_raised,
+    },
+    { new: true }
+  );
+};
+
+const sendEmailNotification = async (to, subject, text) => {
+  const emailData = { to, subject, text };
+  await sendMail(emailData);
+};
+
+const createNotification = async (user, case_id, session, details) => {
+  const notif_data = { user, case_id, session, details };
+  await Notification.create(notif_data);
+};
+
+const handleReferralWithSession = async (
+  id,
+  session_id,
+  refer,
+  details,
+  interactions,
+  concern_raised,
+  date,
+  time,
+  form_id,
+  checkSession,
+  report
+) => {
+  const refCase = await Case.findByIdAndUpdate(
+    id,
+    { concern_raised, status: "referred" },
+    { new: true }
+  );
+
+  await Session.findByIdAndUpdate(
+    session_id,
+    { case_details: details, interactions, status: "completed", report },
+    { new: true }
+  );
+
+  const sc_id = `${refCase.case_id}/SC_${String(
+    refCase.session_ids.length + 1
+  ).padStart(2, "0")}`;
+  const data = {
+    form_id: form_id,
+    session_date: date,
+    session_time: time,
+    type: checkSession.type,
+    description: checkSession.description,
+    counsellor: refer,
+    session_id: sc_id,
+    case_id: id,
+  };
+
+  const session = await createNewSession(data);
+  const upCase = await updateCaseWithSession(id, session._id, concern_raised);
+  const newSession = await Session.findById(session._id)
+    .populate("counsellor")
+    .populate("form_id");
+
+  await sendEmailNotification(
+    newSession.form_id.email,
+    `Your session requested with Session ID: ${newSession.session_id} and Case ID: ${upCase.case_id} for ${newSession.counsellor.name}`,
+    `Dear ${newSession.form_id.name},\n\nYour appointment request for ${
+      newSession.counsellor.name
+    } for ${moment(newSession.session_date).format("DD-MM-YYYY")} at ${
+      newSession.session_time.start
+    }-${
+      newSession.session_time.end
+    } has been sent to the Counselor for approval. We will inform you through an email once your request has been approved by the Counselor.`
+  );
+
+  await createNotification(
+    newSession.counsellor._id,
+    upCase._id,
+    session._id,
+    "New session requested"
+  );
+
+  await sendEmailNotification(
+    newSession.counsellor.email,
+    `You have a new session requested with Session ID: ${newSession.session_id} and Case ID: ${upCase.case_id} from ${newSession.form_id.name}`,
+    `Dear ${
+      newSession.counsellor.name
+    },\n\nYou have received an appointment request from ${
+      newSession.form_id.name
+    } for ${moment(session.session_date).format("DD-MM-YYYY")} at ${
+      newSession.session_time.start
+    }-${
+      newSession.session_time.end
+    }. The request has been sent to you for approval. We will notify you via email once the request has been approved.`
+  );
+
+  return session;
+};
+
+const handleReferralWithoutSession = async (
+  id,
+  session_id,
+  refer,
+  details,
+  interactions,
+  concern_raised,
+  checkSession,
+  report
+) => {
+  const counsellor = await User.findById(refer);
+  const fetchCase = await Case.findById(id).populate("form_id");
+  let updated_refer =
+    fetchCase.referer === null
+      ? [refer]
+      : [...fetchCase.referer.map((ref) => ref), refer];
+
+  await Case.findByIdAndUpdate(
+    id,
+    { referer: updated_refer, concern_raised },
+    { new: true }
+  );
+
+  await Session.findByIdAndUpdate(
+    session_id,
+    { details, interactions, report },
+    { new: true }
+  );
+
+  await sendEmailNotification(
+    counsellor.email,
+    `Feedback requested for Session ID: ${checkSession.session_id} and Case ID: ${checkSession.case_id.case_id}`,
+    `Dear ${counsellor.name},\n\nA session request has been made by ${
+      checkSession.counsellor.name
+    } with the following details:\n\n- **Session ID**: ${
+      checkSession.session_id
+    }\n- **Case ID**: ${
+      checkSession.case_id.case_id
+    }\n- **Requested Date**: ${moment(checkSession.session_date).format(
+      "DD-MM-YYYY"
+    )}\n- **Time**: ${checkSession.session_time.start} - ${
+      checkSession.session_time.end
+    }\n\nAlthough this session is not directly scheduled with you, your feedback or input is requested to help with the case. Please review the session details and provide your feedback at your earliest convenience.`
+  );
+
+  await createNotification(
+    refer,
+    checkSession.case_id._id,
+    checkSession._id,
+    "Session feedback requested"
+  );
 };

@@ -10,6 +10,7 @@ router.get("/", session.getSessions);
 router.get("/case", session.getCases);
 router.get("/remark", session.getRemark);
 router.get("/notification", session.getNotifications);
+router.post("/add-entry/:id", session.addEntry);
 router.put("/accept/:id", session.acceptSession);
 router.put("/reschedule/:id", session.rescheduleSession);
 router.put("/cancel/:id", session.cancelSession);

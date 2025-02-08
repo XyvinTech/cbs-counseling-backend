@@ -109,3 +109,24 @@ exports.addTimeSchema = Joi.object({
   day: Joi.string().required(),
   times: Joi.array(),
 });
+
+exports.createSessionEntrySchema = Joi.object({
+  date: Joi.date(),
+  concern_raised: Joi.date(),
+  time: Joi.object({
+    start: Joi.string().regex(/^([0-9]{2}):([0-9]{2})$/),
+    end: Joi.string().regex(/^([0-9]{2}):([0-9]{2})$/),
+  }),
+  form_id: Joi.string().required(),
+  session_id: Joi.string().required(),
+  close: Joi.boolean(),
+  refer: Joi.string(),
+  interactions: Joi.string(),
+  reason_for_closing: Joi.string(),
+  details: Joi.string(),
+  grade: Joi.string(),
+  remarks: Joi.string(),
+  report: Joi.array(),
+  with_session: Joi.boolean(),
+  isEditable: Joi.boolean(),
+});
