@@ -461,9 +461,9 @@ exports.getCases = async (req, res) => {
       return {
         ...item._doc,
         user_name: item.form_id.name,
-        counsellor_name: sessions
-          ?.map((session) => session.counsellor.name)
-          .join(", "),
+        counsellor_name: [
+          ...new Set(sessions?.map((session) => session.counsellor.name)),
+        ].join(", "),
         session_time: item.session_ids.length
           ? item.session_ids[item.session_ids.length - 1].session_time
           : null,
