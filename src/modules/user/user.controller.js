@@ -237,9 +237,14 @@ exports.getStudent = async (req, res) => {
 exports.getCounsellors = async (req, res) => {
   try {
     const { counsellorType } = req.query;
-    const counsellors = await User.find({
-      counsellorType: { $in: [counsellorType] },
-    });
+    let counsellors;
+    if (counsellorType) {
+      counsellors = await User.find({
+        counsellorType: { $in: [counsellorType] },
+      });
+    } else {
+      counsellors = await User.find({ _id: { $ne: req.userId } });
+    }
     const mappedData = counsellors.map((counsellor) => {
       return {
         _id: counsellor._id,
