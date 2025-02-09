@@ -244,7 +244,8 @@ exports.getCounsellors = async (req, res) => {
       });
     } else {
       counsellors = await User.find({
-        _id: { $ne: req.userId, userType: "counsellor" },
+        _id: { $ne: req.userId },
+        userType: "counsellor",
       });
     }
     const mappedData = counsellors.map((counsellor) => {
