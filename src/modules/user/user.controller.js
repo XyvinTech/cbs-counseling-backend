@@ -236,7 +236,7 @@ exports.getStudent = async (req, res) => {
 
 exports.getCounsellors = async (req, res) => {
   try {
-    const { counsellorType } = req.query;
+    const { counsellorType, counsellor } = req.query;
     let counsellors;
     if (counsellorType) {
       counsellors = await User.find({
@@ -244,7 +244,7 @@ exports.getCounsellors = async (req, res) => {
       });
     } else {
       counsellors = await User.find({
-        _id: { $ne: req.userId },
+        _id: { $ne: counsellor },
         userType: "counsellor",
       });
     }
