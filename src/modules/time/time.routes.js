@@ -7,5 +7,5 @@ router.get("/counsellors/:id/times", time.getAvailableTimes);
 router.get("/counsellors/:id/days", time.getDays);
 router.use(authVerify);
 router.route("/").post(time.createTime).get(time.getTimes);
-router.route("/:id").delete(time.deleteTime);
+router.route("/:id").post(time.deleteTime);
 module.exports = router;
