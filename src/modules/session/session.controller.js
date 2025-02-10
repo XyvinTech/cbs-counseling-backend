@@ -168,7 +168,7 @@ exports.acceptSession = async (req, res) => {
       return responseHandler(res, 400, "Session acceptance failed");
     }
 
-    if (updatedSession.case_id) {
+    if (updatedSession) {
       await Case.findByIdAndUpdate(
         updatedSession.case_id._id,
         { status: "progress" },
