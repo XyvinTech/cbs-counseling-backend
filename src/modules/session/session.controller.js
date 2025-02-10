@@ -426,6 +426,9 @@ exports.getSession = async (req, res) => {
           path: "referer",
           select: "name",
         },
+      })
+      .populate({
+        path: "case_id",
         populate: {
           path: "session_ids",
         },
