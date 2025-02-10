@@ -291,7 +291,7 @@ exports.rescheduleSession = async (req, res) => {
 
     if (
       rescheduledSession.status !== "pending" &&
-      rescheduledSession.status !== "rescheduled"
+      rescheduledSession.status === "rescheduled"
     ) {
       return responseHandler(res, 400, "You can't reschedule this session");
     }
