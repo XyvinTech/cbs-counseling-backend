@@ -8,6 +8,7 @@ const validations = require("../../validations");
 const sendMail = require("../../utils/sendMail");
 const mongoose = require("mongoose");
 const User = require("../../models/userModel");
+const { populate } = require("dotenv");
 
 exports.createForm = async (req, res) => {
   try {
@@ -424,6 +425,9 @@ exports.getSession = async (req, res) => {
         populate: {
           path: "referer",
           select: "name",
+        },
+        populate: {
+          path: "session_ids",
         },
       })
       .populate("counsellor")
