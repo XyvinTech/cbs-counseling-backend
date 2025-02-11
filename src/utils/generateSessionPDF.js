@@ -2,7 +2,7 @@ const moment = require("moment-timezone");
 const PDFDocument = require("pdfkit");
 
 // Function to create a counseling session report PDF
-exports.createReport = (session) => {
+exports.generateSessionPDF = (session) => {
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({
       size: "A4",

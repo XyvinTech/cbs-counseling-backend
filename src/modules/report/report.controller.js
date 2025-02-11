@@ -4,6 +4,7 @@ const Form = require("../../models/formModel");
 const Session = require("../../models/sessionModel");
 const User = require("../../models/userModel");
 const { generateCasePDF } = require("../../utils/generateCasePDF");
+const { generateSessionPDF } = require("../../utils/generateSessionPDF");
 
 exports.report = async (req, res) => {
   try {
@@ -321,7 +322,21 @@ exports.caseReport = async (req, res) => {
 
     const report = await generateCasePDF(cases);
 
-    return responseHandler(res, 200, "Case found", report);
+    return responseHandler(res, 200, "Case report generated", report);
+  } catch (error) {
+    return responseHandler(res, 500, `Internal Server Error ${error.message}`);
+  }
+};
+
+exports.sessionReport = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const getSession = await Session.findById(id)
+      .populate("form_id")
+      .populate("case_id")
+      .populate("counsellor");
+    const report = await generateSessionPDF(getSession);
+    return responseHandler(res, 200, "Report created successfully", report);
   } catch (error) {
     return responseHandler(res, 500, `Internal Server Error ${error.message}`);
   }
