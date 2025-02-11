@@ -451,7 +451,9 @@ exports.getSession = async (req, res) => {
 
 exports.getCases = async (req, res) => {
   try {
-    const { searchQuery, status } = req.query;
+    const { searchQuery, status, page = 1, limit = 10 } = req.query;
+
+    const skipCount = (page - 1) * limit;
 
     const query = {};
 
@@ -479,7 +481,10 @@ exports.getCases = async (req, res) => {
           select: "name",
         },
       })
-      .populate("form_id");
+      .populate("form_id")
+      .skip(skipCount)
+      .limit(limit)
+      .sort({ _id: -1 });
     const mappedData = cases.map((item) => {
       return {
         ...item._doc,

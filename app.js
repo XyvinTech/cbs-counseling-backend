@@ -15,6 +15,7 @@ const typeRoutes = require("./src/modules/type/type.routes");
 const eventRoutes = require("./src/modules/event/event.routes");
 const sessionRoute = require("./src/modules/session/session.routes");
 const timeRoute = require("./src/modules/time/time.routes");
+const reportRoute = require("./src/modules/report/report.routes");
 
 //! Create an instance of the Express application
 const app = express();
@@ -49,6 +50,7 @@ app.use(`${BASE_PATH}/dashboard`, dashboardRoutes);
 app.use(`${BASE_PATH}/events`, eventRoutes);
 app.use(`${BASE_PATH}/sessions`, sessionRoute);
 app.use(`${BASE_PATH}/times`, timeRoute);
+app.use(`${BASE_PATH}/report`, reportRoute);
 
 //* Define the directory where the files will be uploaded
 const uploadDir = "C:/cbs_school_files";

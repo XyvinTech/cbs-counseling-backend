@@ -1,9 +1,10 @@
 const express = require("express");
-const { report } = require("./report.controller");
+const report = require("./report.controller");
 const authVerify = require("../../middlewares/authVerify");
 const router = express.Router();
 
 router.use(authVerify);
-router.get("/", report);
+router.get("/", report.report);
+router.get("/case/:id", report.caseReport);
 
 module.exports = router;
