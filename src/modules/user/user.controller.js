@@ -41,12 +41,6 @@ exports.createUser = async (req, res) => {
         subject: "New counsellor created",
         text: `Hello ${user.name},\n\nYour account has been created. Username: ${user.email}, Password: ${password}\n\nRegards,\nAdmin`,
       });
-    } else {
-      await sendMail({
-        to: user.email,
-        subject: "New student created",
-        text: `Hello ${user.name},\n\nYour account has been created. Username: ${user.StudentReferencesCode}, Password: ${password}\n\nRegards,\nAdmin`,
-      });
     }
 
     return responseHandler(res, 200, "Success", user);

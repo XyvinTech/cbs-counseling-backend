@@ -206,10 +206,10 @@ exports.acceptSession = async (req, res) => {
           } on ${sessionDateFormatted} at ${sessionTimeRange} has been accepted by the Counselor.
 
           Here are the session details:
-          - **Session ID**: ${updatedSession.session_id}
-          - **Case ID**: ${updatedSession.case_id?.case_id || "N/A"}
-          - **Date**: ${sessionDateFormatted}
-          - **Time**: ${sessionTimeRange}
+          - Session ID: ${updatedSession.session_id}
+          - Case ID: ${updatedSession.case_id?.case_id || "N/A"}
+          - Date: ${sessionDateFormatted}
+          - Time: ${sessionTimeRange}
 
           We look forward to seeing you at the scheduled time.
 
@@ -230,12 +230,12 @@ exports.acceptSession = async (req, res) => {
         } has been accepted.
 
         Here are the session details:
-        - **Session ID**: ${updatedSession.session_id}
-        - **Case ID**: ${updatedSession.case_id?.case_id || "N/A"}
-        - **Date**: ${sessionDateFormatted}
-        - **Time**: ${sessionTimeRange}
-        - **User**: ${updatedSession.form_id?.name || "N/A"}
-        - **User Email**: ${updatedSession.form_id?.email || "N/A"}
+        - Session ID: ${updatedSession.session_id}
+        - Case ID: ${updatedSession.case_id?.case_id || "N/A"}
+        - Date: ${sessionDateFormatted}
+        - Time: ${sessionTimeRange}
+        - User: ${updatedSession.form_id?.name || "N/A"}
+        - User Email: ${updatedSession.form_id?.email || "N/A"}
 
         Please prepare for the session accordingly.
 
@@ -320,8 +320,8 @@ exports.rescheduleSession = async (req, res) => {
         We wanted to inform you that your appointment with ${rescheduledSession.counsellor.name}, originally scheduled for ${oldSessionDateFormatted} at ${oldSessionTimeRange}, has been rescheduled.
 
         The new session details:
-        - **Date**: ${sessionDateFormatted}
-        - **Time**: ${sessionTimeRange}
+        - Date: ${sessionDateFormatted}
+        - Time: ${sessionTimeRange}
         
         We apologize for any inconvenience this may cause. Please feel free to reach out if you have any questions.
 
@@ -337,8 +337,8 @@ exports.rescheduleSession = async (req, res) => {
         subject: "Session Rescheduled",
         text: `Session ID: ${rescheduledSession.session_id} has been rescheduled.
         
-        - **New Date**: ${sessionDateFormatted}
-        - **New Time**: ${sessionTimeRange}`,
+        - New Date: ${sessionDateFormatted}
+        - New Time: ${sessionTimeRange}`,
       };
 
       emailsToSend.push(sendMail(counselorEmailData));
@@ -873,6 +873,13 @@ exports.addEntry = async (req, res) => {
         interactions,
         report
       );
+      await Case.findByIdAndUpdate(
+        updateSession.case_id,
+        {
+          concern_raised: concern_raised,
+        },
+        { new: true }
+      );
       return responseHandler(
         res,
         200,
@@ -1189,11 +1196,9 @@ const handleReferralWithoutSession = async (
       checkSession.counsellor.name
     } with the following details:\n\n- **Session ID**: ${
       checkSession.session_id
-    }\n- **Case ID**: ${
-      checkSession.case_id.case_id
-    }\n- **Requested Date**: ${moment(checkSession.session_date).format(
-      "DD-MM-YYYY"
-    )}\n- **Time**: ${checkSession.session_time.start} - ${
+    }\n- Case ID: ${checkSession.case_id.case_id}\n- Requested Date: ${moment(
+      checkSession.session_date
+    ).format("DD-MM-YYYY")}\n- Time: ${checkSession.session_time.start} - ${
       checkSession.session_time.end
     }\n\nAlthough this session is not directly scheduled with you, your feedback or input is requested to help with the case. Please review the session details and provide your feedback at your earliest convenience.`
   );
