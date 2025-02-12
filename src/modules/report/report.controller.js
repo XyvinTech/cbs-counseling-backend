@@ -265,7 +265,7 @@ const generateSessionCountReport = async (filter, grNumberFilter) => {
 };
 
 const generateCounselingTypeReport = async (filter, counselingType) => {
-  if (counselingType.length < 1) {
+  if (!counselingType) {
     throw new Error("Counselling type is required");
   }
   filter.type = counselingType;
