@@ -84,6 +84,8 @@ exports.editEventSchema = Joi.object({
   guest: Joi.string().allow(""),
   requisition_image: Joi.string(),
   remainder: Joi.array(),
+  creator: Joi.string(),
+  counselor: Joi.array(),
   details: Joi.string(),
   requisition_description: Joi.string().allow(""),
 });
