@@ -13,7 +13,7 @@ exports.report = async (req, res) => {
       reportType,
       startDate,
       endDate,
-      counselingType = [],
+      counselingType,
       counsellor,
       grNumber,
     } = req.query;
@@ -43,7 +43,7 @@ exports.report = async (req, res) => {
           grNumberFilter
         ));
         break;
-      case "counselling-type":
+      case "counseling-type":
         ({ headers, data } = await generateCounselingTypeReport(
           filter,
           grNumberFilter,
