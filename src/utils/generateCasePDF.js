@@ -157,8 +157,8 @@ exports.generateCasePDF = (cases) => {
       const sessionType = session.type;
       const sessionStatus = session.status;
       const sessionCounsellor = session.counsellor.name;
-      const sessionDescription = session.description.trim();
-      const sessionCaseDetails = session.case_details.trim();
+      const sessionDescription = session.description;
+      const sessionCaseDetails = session.case_details;
 
       doc
         .fillColor("#333333")
