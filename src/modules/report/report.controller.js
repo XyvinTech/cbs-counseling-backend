@@ -95,7 +95,7 @@ const getGrNumberFilter = async (grNumber) => {
 
 const getDateFilter = (reportType, startDate, endDate) => {
   const filter = {};
-  if (["session", "session-count", "counselling-type"].includes(reportType)) {
+  if (["session", "session-count", "counseling-type"].includes(reportType)) {
     filter.session_date = {
       $gte: new Date(startDate),
       $lte: new Date(endDate),
@@ -162,6 +162,8 @@ const generateCaseReport = async (filter, grNumberFilter) => {
       },
     });
 
+  const validCases = cases.filter((caseItem) => caseItem.form_id !== null);
+
   const headers = [
     "Case ID",
     "Student Name",
@@ -175,11 +177,11 @@ const generateCaseReport = async (filter, grNumberFilter) => {
     "Case Details",
   ];
 
-  const data = cases.flatMap((caseItem) => {
+  const data = validCases.flatMap((caseItem) => {
     if (!caseItem.session_ids?.length) {
       return {
         case_id: caseItem.case_id,
-        student_name: caseItem.form_id?.name || "N/A",
+        student_name: caseItem.form_id.name || "N/A",
         counsellor_name: "N/A",
         counseling_type: "N/A",
         status: caseItem.status || "N/A",
@@ -193,7 +195,7 @@ const generateCaseReport = async (filter, grNumberFilter) => {
 
     return caseItem.session_ids.map((session) => ({
       case_id: caseItem.case_id,
-      student_name: caseItem.form_id?.name || "N/A",
+      student_name: caseItem.form_id.name || "N/A",
       counsellor_name: session.counsellor?.name || "N/A",
       counseling_type: session.counsellor?.counsellorType || "N/A",
       status: caseItem.status || "N/A",
