@@ -268,7 +268,7 @@ const generateCounselingTypeReport = async (filter, counselingType) => {
   if (counselingType.length < 1) {
     throw new Error("Counselling type is required");
   }
-  filter.type = { $in: counselingType };
+  filter.type = counselingType;
   const sessions = await Session.find(filter)
     .populate("form_id")
     .populate("case_id")
