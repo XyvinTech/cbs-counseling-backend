@@ -10,10 +10,13 @@ const eventSchema = mongoose.Schema(
     remainder: { type: [String] },
     details: { type: String },
     requisition_description: { type: String },
-    creator: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-    },
+    creator: { type: String },
+    counselor: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
   },
   { timestamps: true }
 );

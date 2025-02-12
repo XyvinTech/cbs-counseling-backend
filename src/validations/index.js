@@ -72,6 +72,8 @@ exports.createEventSchema = Joi.object({
   requisition_image: Joi.string(),
   remainder: Joi.array().required(),
   details: Joi.string().required(),
+  creator: Joi.string().required(),
+  counselor: Joi.array().required(),
   requisition_description: Joi.string().allow(""),
 });
 
