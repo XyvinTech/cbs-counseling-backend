@@ -14,7 +14,8 @@ jobs:
       LIGHTSAIL_INSTANCE_IP: ${{ secrets.LIGHTSAIL_INSTANCE_IP }}
       SSH_USERNAME: ${{ secrets.LIGHTSAIL_USERNAME }}
       SSH_PRIVATE_KEY: ${{ secrets.LIGHTSAIL_SSH_PRIVATE_KEY }}
-      ENV_FILE_PATH: /root/school/.env/.env.production
+      ENV_FILE_PATH: /home/ubuntu/school/.env/.env.production
+      PROJECT_DIR: school-backend
       APP_NAME: school-backend
 
     steps:
@@ -28,22 +29,6 @@ jobs:
           username: ${{ env.SSH_USERNAME }}
           key: ${{ env.SSH_PRIVATE_KEY }}
           script: |
-            # Install git if not installed
-            if ! command -v git &> /dev/null; then
-              sudo apt-get update && sudo apt-get install -y git
-            fi
-
-            # If repo exists, pull latest changes; otherwise, clone
-            if [ -d ".git" ]; then
-              echo "Existing repository found. Pulling latest changes..."
-              git reset --hard
-              git pull origin main
-            else
-              echo "Repository not found. Cloning..."
-              git clone https://github.com/${{ github.repository }}
-              cd $APP_NAME
-            fi
-
             # Verify Node.js and npm installation
             node -v || { echo "Node.js not found"; exit 1; }
             npm -v || { echo "npm not found"; exit 1; }
@@ -53,17 +38,26 @@ jobs:
               sudo npm install -g pm2
             fi
 
-            # Install dependencies
-            npm install
-
-            # Check if the .env.production file exists
-            if [ ! -f ${{ env.ENV_FILE_PATH }} ]; then
-              echo ".env.production file not found"
-              exit 1
+            # Clone the repository or pull the latest changes
+            if [ -d "${{ env.PROJECT_DIR }}" ]; then
+              cd ${{ env.PROJECT_DIR }}
+              git pull origin main
+            else
+              git clone https://github.com/${{ github.repository }} ${{ env.PROJECT_DIR }}
+              cd ${{ env.PROJECT_DIR }}
             fi
 
-            # Copy environment file to the project directory
-            cp ${{ env.ENV_FILE_PATH }} $APP_NAME/.env
+            # Install dependencies
+            cd school-backend
+            npm install
+
+            # Copy environment file
+            if [ -f "${{ env.ENV_FILE_PATH }}" ]; then
+              cp ${{ env.ENV_FILE_PATH }} .env
+            else
+              echo ".env file missing at ${{ env.ENV_FILE_PATH }}"
+              exit 1
+            fi
 
             # Restart the application with PM2
             pm2 delete ${{ env.APP_NAME }} || true
