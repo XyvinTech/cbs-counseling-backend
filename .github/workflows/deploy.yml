@@ -37,7 +37,7 @@ jobs:
             REPO_URL="git@github.com:${{ github.repository }}.git"
 
             # Remove existing directory if it exists
-            rm -rf /root/school-backend
+            sudo rm -rf /root/school-backend
 
             # Clone the latest code from GitHub
             git clone $REPO_URL /root/school-backend
