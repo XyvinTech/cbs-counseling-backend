@@ -1,0 +1,72 @@
+name: Deploy School App
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy-backend:
+    name: Deploy Backend
+    runs-on: ubuntu-latest
+
+    env:
+      LIGHTSAIL_INSTANCE_IP: ${{ secrets.LIGHTSAIL_INSTANCE_IP }}
+      SSH_USERNAME: ${{ secrets.LIGHTSAIL_USERNAME }}
+      SSH_PRIVATE_KEY: ${{ secrets.LIGHTSAIL_SSH_PRIVATE_KEY }}
+      ENV_FILE_PATH: /root/school/.env/.env.production
+      APP_NAME: school-backend
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Deploy to Lightsail
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ env.LIGHTSAIL_INSTANCE_IP }}
+          username: ${{ env.SSH_USERNAME }}
+          key: ${{ env.SSH_PRIVATE_KEY }}
+          script: |
+            # Install git if not installed
+            if ! command -v git &> /dev/null; then
+              sudo apt-get update && sudo apt-get install -y git
+            fi
+
+            # Define repository URL dynamically
+            REPO_URL="git@github.com:${{ github.repository }}.git"
+
+            # Remove existing directory if it exists
+            rm -rf /root/school-backend
+
+            # Clone the latest code from GitHub
+            git clone $REPO_URL /root/school-backend
+
+            # Navigate to backend project directory
+            cd /root/school-backend
+
+            # Verify Node.js and npm installation
+            node -v || { echo "Node.js not found"; exit 1; }
+            npm -v || { echo "npm not found"; exit 1; }
+
+            # Install PM2 globally if not installed
+            if ! command -v pm2 &> /dev/null; then
+              sudo npm install -g pm2
+            fi
+
+            # Install dependencies
+            npm install
+
+            # Check if the .env.production file exists
+            if [ ! -f ${{ env.ENV_FILE_PATH }} ]; then
+              echo ".env.production file not found"
+              exit 1
+            fi
+
+            # Copy environment file to the project directory
+            cp ${{ env.ENV_FILE_PATH }} /root/school-backend/.env
+
+            # Restart the application with PM2
+            pm2 delete ${{ env.APP_NAME }} || true
+            pm2 start npm --name ${{ env.APP_NAME }} -- run start
+            pm2 save
