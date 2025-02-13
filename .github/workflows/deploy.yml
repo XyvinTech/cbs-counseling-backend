@@ -16,7 +16,6 @@ jobs:
       SSH_PRIVATE_KEY: ${{ secrets.LIGHTSAIL_SSH_PRIVATE_KEY }}
       ENV_FILE_PATH: /root/school/.env/.env.production
       APP_NAME: school-backend
-      DEPLOY_DIR: /root/school-backend
 
     steps:
       - name: Checkout repository
@@ -34,11 +33,6 @@ jobs:
               sudo apt-get update && sudo apt-get install -y git
             fi
 
-            # Ensure the deployment directory is accessible
-            sudo mkdir -p $DEPLOY_DIR
-            sudo chown -R $USER:$USER $DEPLOY_DIR
-            cd $DEPLOY_DIR
-
             # If repo exists, pull latest changes; otherwise, clone
             if [ -d ".git" ]; then
               echo "Existing repository found. Pulling latest changes..."
@@ -46,8 +40,8 @@ jobs:
               git pull origin main
             else
               echo "Repository not found. Cloning..."
-              git clone https://github.com/${{ github.repository }} $DEPLOY_DIR
-              cd $DEPLOY_DIR
+              git clone https://github.com/${{ github.repository }}
+              cd $APP_NAME
             fi
 
             # Verify Node.js and npm installation
@@ -69,7 +63,7 @@ jobs:
             fi
 
             # Copy environment file to the project directory
-            cp ${{ env.ENV_FILE_PATH }} $DEPLOY_DIR/.env
+            cp ${{ env.ENV_FILE_PATH }} $APP_NAME/.env
 
             # Restart the application with PM2
             pm2 delete ${{ env.APP_NAME }} || true
