@@ -1,5 +1,5 @@
 {
-  "name": "bethel_backend",
+  "name": "school-backend",
   "version": "1.0.0",
   "main": "app.js",
   "scripts": {
@@ -9,14 +9,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/hello-world-ttj/bethel_backend.git"
+    "url": "git+https://github.com/hello-world-ttj/school-backend.git"
   },
   "author": "hello-world-ttj",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/hello-world-ttj/bethel_backend/issues"
+    "url": "https://github.com/hello-world-ttj/school-backend/issues"
   },
-  "homepage": "https://github.com/hello-world-ttj/bethel_backend#readme",
+  "homepage": "https://github.com/hello-world-ttj/school-backend#readme",
   "description": "",
   "dependencies": {
     "archiver": "^7.0.1",
