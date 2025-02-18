@@ -469,8 +469,14 @@ exports.getCases = async (req, res) => {
     if (status) {
       filter.status = status;
     }
+
     if (searchQuery) {
-      filter.$or = [{ "form_id.name": { $regex: searchQuery, $options: "i" } }];
+      filter.$or = [
+        { "form_id.name": { $regex: searchQuery, $options: "i" } },
+        {
+          "session_ids.counsellor.name": { $regex: searchQuery, $options: "i" },
+        },
+      ];
     }
 
     const cases = await Case.find(filter)
