@@ -102,7 +102,7 @@ exports.bulkDelete = async (req, res) => {
 
 exports.getCounsellingTypes = async (req, res) => {
   try {
-    const { page, limit = 10, searchQuery } = req.query;
+    const { page = 1, limit = 10, searchQuery } = req.query;
     const filter = {};
 
     if (searchQuery) {
