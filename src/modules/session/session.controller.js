@@ -455,18 +455,14 @@ exports.getCases = async (req, res) => {
     const skipCount = (page - 1) * limit;
 
     const query = {};
-
     if (req.user.userType === "counsellor") {
       query.counsellor = req.userId;
     }
 
     const sessions = await Session.find(query).populate("counsellor");
     const sessionIds = sessions.map((session) => session._id);
-    const counsellorIds = sessions.map((session) => session.counsellor?._id);
 
-    const filter = {
-      session_ids: { $in: sessionIds },
-    };
+    const filter = { session_ids: { $in: sessionIds } };
 
     if (status) {
       filter.status = status;
@@ -477,9 +473,18 @@ exports.getCases = async (req, res) => {
 
       const matchedForms = await Form.find(nameFilter).select("_id");
 
+      const matchedCounsellors = await User.find(nameFilter)
+        .where("userType")
+        .equals("counsellor")
+        .select("_id");
+
+      const matchedSessions = await Session.find({
+        counsellor: { $in: matchedCounsellors.map((c) => c._id) },
+      }).select("_id");
+
       filter.$or = [
-        { form_id: { $in: matchedForms.map((form) => form._id) } },
-        { "session_ids.counsellor": { $in: counsellorIds } },
+        { form_id: { $in: matchedForms.map((form) => form._id) } }, 
+        { session_ids: { $in: matchedSessions.map((s) => s._id) } }, 
       ];
     }
 
