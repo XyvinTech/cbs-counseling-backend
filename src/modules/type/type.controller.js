@@ -102,7 +102,19 @@ exports.bulkDelete = async (req, res) => {
 
 exports.getCounsellingTypes = async (req, res) => {
   try {
-    const types = await Type.find();
+    const { page, limit = 10, searchQuery } = req.query;
+    const filter = {};
+
+    if (searchQuery) {
+      filter.name = { $regex: searchQuery, $options: "i" };
+    }
+
+    const skipCount = limit * (page - 1);
+
+    const types = await Type.find(filter)
+      .skip(skipCount)
+      .limit(limit)
+      .sort({ _id: -1 });
     return responseHandler(res, 200, "Success", types, types.length);
   } catch (error) {
     return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
