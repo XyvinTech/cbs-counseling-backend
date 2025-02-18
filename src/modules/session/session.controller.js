@@ -452,7 +452,6 @@ exports.getSession = async (req, res) => {
 exports.getCases = async (req, res) => {
   try {
     const { searchQuery, status, page = 1, limit = 10 } = req.query;
-
     const skipCount = (page - 1) * limit;
 
     const query = {};
@@ -463,19 +462,24 @@ exports.getCases = async (req, res) => {
 
     const sessions = await Session.find(query).populate("counsellor");
     const sessionIds = sessions.map((session) => session._id);
+    const counsellorIds = sessions.map((session) => session.counsellor?._id);
+
     const filter = {
       session_ids: { $in: sessionIds },
     };
+
     if (status) {
       filter.status = status;
     }
 
     if (searchQuery) {
+      const nameFilter = { name: { $regex: searchQuery, $options: "i" } };
+
+      const matchedForms = await Form.find(nameFilter).select("_id");
+
       filter.$or = [
-        { "form_id.name": { $regex: searchQuery, $options: "i" } },
-        {
-          "session_ids.counsellor.name": { $regex: searchQuery, $options: "i" },
-        },
+        { form_id: { $in: matchedForms.map((form) => form._id) } },
+        { "session_ids.counsellor": { $in: counsellorIds } },
       ];
     }
 
@@ -487,17 +491,20 @@ exports.getCases = async (req, res) => {
           select: "name",
         },
       })
-      .populate("form_id")
+      .populate("form_id", "name")
       .skip(skipCount)
       .limit(limit)
       .sort({ _id: -1 });
+
     const mappedData = cases.map((item) => {
       return {
         ...item._doc,
-        user_name: item.form_id.name,
+        user_name: item.form_id?.name || "",
         counsellor_name: [
           ...new Set(
-            item.session_ids?.map((session) => session.counsellor.name)
+            item.session_ids
+              ?.map((session) => session.counsellor?.name)
+              .filter(Boolean)
           ),
         ].join(", "),
         session_time: item.session_ids.length
@@ -509,7 +516,9 @@ exports.getCases = async (req, res) => {
         session_count: item.session_ids.length,
       };
     });
+
     const totalCount = await Case.countDocuments(filter);
+
     return responseHandler(res, 200, "Cases found", mappedData, totalCount);
   } catch (error) {
     return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
