@@ -3,7 +3,7 @@ const type = require("./type.controller");
 const authVerify = require("../../middlewares/authVerify");
 const router = express.Router();
 
-router.get("/", type.getCounsellingType);
+router.get("/", type.getCounsellingTypes);
 
 router.use(authVerify);
 
