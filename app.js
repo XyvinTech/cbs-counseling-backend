@@ -99,6 +99,10 @@ app.post(`${BASE_PATH}/upload`, upload.single("file"), (req, res) => {
   );
 });
 
+app.get("*", (req, res) => {
+  res.sendFile(path.join(frontendBuildPath, "index.html"));
+});
+
 app.listen(PORT, () => {
   const portMessage = clc.redBright(`✓ App is running on port: ${PORT}`);
   const envMessage = clc.yellowBright(
