@@ -46,7 +46,6 @@ exports.report = async (req, res) => {
       case "counseling-type":
         ({ headers, data } = await generateCounselingTypeReport(
           filter,
-          grNumberFilter,
           counselingType
         ));
         break;
