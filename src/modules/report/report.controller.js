@@ -300,7 +300,7 @@ const generateCounselingTypeReport = async (filter, counselingType) => {
     session_id: session.session_id || "N/A",
     student_name: session.form_id?.name || "N/A",
     counsellor_name: session.counsellor?.name || "N/A",
-    counseling_type: session.counsellor?.counsellorType || "N/A",
+    counseling_type: session.type || "N/A",
     session_date: moment(session.session_date).format("DD-MM-YYYY"),
     session_time: session.session_time
       ? `${session.session_time.start || "N/A"} - ${
