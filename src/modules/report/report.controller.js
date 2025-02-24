@@ -118,6 +118,8 @@ const generateSessionReport = async (filter, grNumberFilter) => {
     .populate("case_id")
     .populate("counsellor");
 
+  const filteredSessions = sessions.filter((session) => session.form_id);
+
   const headers = [
     "Case ID",
     "Session ID",
@@ -130,21 +132,27 @@ const generateSessionReport = async (filter, grNumberFilter) => {
     "Status",
   ];
 
-  const data = sessions.map((session) => ({
-    case_id: session.case_id?.case_id || "N/A",
-    session_id: session.session_id || "N/A",
-    student_name: session.form_id?.name || "N/A",
-    counsellor_name: session.counsellor?.name || "N/A",
-    counseling_type: session.counsellor?.counsellorType || "N/A",
-    session_date: moment(session.session_date).format("DD-MM-YYYY"),
-    session_time: session.session_time
-      ? `${session.session_time.start || "N/A"} - ${
-          session.session_time.end || "N/A"
-        }`
-      : "N/A",
-    description: session.description || "N/A",
-    status: session.status || "N/A",
-  }));
+  const data = filteredSessions.map((session) => {
+    const formattedSession = {
+      case_id: session.case_id?.case_id || "N/A",
+      session_id: session.session_id || "N/A",
+      student_name: session.form_id?.name || "N/A",
+      counsellor_name: session.counsellor?.name || "N/A",
+      counseling_type: session.counsellor?.counsellorType || "N/A",
+      session_date: moment(session.session_date).format("DD-MM-YYYY"),
+      session_time: session.session_time
+        ? `${session.session_time.start || "N/A"} - ${
+            session.session_time.end || "N/A"
+          }`
+        : "N/A",
+      description: session.description || "N/A",
+      status: session.status || "N/A",
+    };
+
+    return Object.fromEntries(
+      Object.entries(formattedSession).filter(([_, value]) => value !== "N/A")
+    );
+  });
 
   return { headers, data };
 };
