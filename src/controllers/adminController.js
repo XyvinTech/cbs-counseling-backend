@@ -791,7 +791,7 @@ exports.listController = async (req, res) => {
         },
         { $skip: skipCount },
         { $limit: Number(limit) },
-        { $sort: { createdAt: -1 } },
+        { $sort: { createdAt: 1 } },
       ];
 
       const sessions = await Case.aggregate(pipeline);
