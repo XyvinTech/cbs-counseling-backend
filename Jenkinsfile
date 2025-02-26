@@ -13,7 +13,7 @@ pipeline {
             steps {
                 script {
                     // Use the secret file credential
-                    def envFile = 'cbs-backend' // Use the ID you set for your secret file
+                    def envFile = 'cbs-backend-env' // Use the ID you set for your secret file
                     // Unpack the secret file to the workspace
                     withCredentials([file(credentialsId: envFile, variable: 'ENV_FILE')]) {
                         // Write the contents of the secret file to .env
