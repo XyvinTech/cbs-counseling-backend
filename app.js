@@ -22,7 +22,7 @@ const reportRoute = require("./src/modules/report/report.routes");
 //! Create an instance of the Express application
 const app = express();
 //* Define the PORT & API version based on environment variable
-const { PORT, API_VERSION, NODE_ENV } = process.env;
+const { PORT, API_VERSION, NODE_ENV, HTTP_PORT } = process.env;
 //* Use volleyball for request logging
 app.use(volleyball);
 //* Enable Cross-Origin Resource Sharing (CORS) middleware
