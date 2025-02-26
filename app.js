@@ -6,6 +6,8 @@ const clc = require("cli-color");
 const path = require("path");
 const multer = require("multer");
 const fs = require("fs");
+const https = require("https");
+const http = require("http");
 const responseHandler = require("./src/helpers/responseHandler");
 const userRoutes = require("./src/modules/user/user.routes");
 const authRoutes = require("./src/modules/auth/auth.routes");
@@ -33,7 +35,12 @@ const BASE_PATH = `/api/${API_VERSION}`;
 require("./src/helpers/connection");
 
 //! Define the absolute path to the frontend build directory
-const frontendBuildPath = "/var/www/html/school-frontend";
+const frontendBuildPath = path.join(
+  __dirname,
+  "..",
+  "cbs-counseling-frontend",
+  "dist"
+);
 
 // !Serve static files from the frontend build directory
 app.use(express.static(frontendBuildPath));
