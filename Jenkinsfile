@@ -6,7 +6,7 @@ pipeline {
     }
     environment {
         NODE_ENV = 'production'
-        ENV_FILE = credentials('cbs-backend') // replace with your credential ID
+        ENV_FILE = credentials('cbs-backend-env') // replace with your credential ID
     }
     stages {
         stage('Prepare Environment') {
