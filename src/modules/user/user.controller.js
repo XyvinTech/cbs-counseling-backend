@@ -176,7 +176,7 @@ exports.bulkDelete = async (req, res) => {
 
 exports.getUsers = async (req, res) => {
   try {
-    let { type, page, searchQuery, limit = 10 } = req.query;
+    let { type, page, searchQuery, limit = 10, user = "paginated" } = req.query;
     page = parseInt(page);
     limit = parseInt(limit);
     const skipCount = limit * (page - 1);
@@ -200,7 +200,7 @@ exports.getUsers = async (req, res) => {
       .sort({ _id: -1 })
       .select("-password -otp")
       .lean();
-    if (limit !== "all") {
+    if (user !== "all") {
       query.skip(skipCount).limit(limit);
     }
 
