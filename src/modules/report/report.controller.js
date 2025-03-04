@@ -399,9 +399,10 @@ const generateConsolidatedReport = async (filter) => {
     if (!session.counsellor) return;
 
     const counselorId = session.counsellor._id.toString();
+    console.log({ type: session.type, counsellor: counselorId });
 
     // Count student sessions by type
-    if (session.form_id && session.form_id.referee === "student") {
+    if (session ) {
       reportData.studentSessions.data[counselorId].total++;
 
       // Categorize by session type
