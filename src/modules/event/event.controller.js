@@ -83,22 +83,24 @@ exports.deleteEvent = async (req, res) => {
     }
 
     const findEvent = await Event.findById(id);
-    const filePath = findEvent.requisition_image;
-    const absolutePath = path.resolve(filePath);
-    fs.access(absolutePath, fs.constants.F_OK, (err) => {
-      if (err) {
-        return res.status(404).send("File not found.");
-      }
-
-      fs.unlink(absolutePath, (err) => {
-        if (err) {
-          console.log("🚀 ~ Failed to delete the file.");
-        }
-        console.log("🚀 ~ File deleted successfully.");
-      });
-    });
     if (!findEvent) {
       return responseHandler(res, 404, "Event not found");
+    }
+    const filePath = findEvent.requisition_image;
+    if (filePath) {
+      const absolutePath = path.resolve(filePath);
+      fs.access(absolutePath, fs.constants.F_OK, (err) => {
+        if (err) {
+          return res.status(404).send("File not found.");
+        }
+
+        fs.unlink(absolutePath, (err) => {
+          if (err) {
+            console.log("🚀 ~ Failed to delete the file.");
+          }
+          console.log("🚀 ~ File deleted successfully.");
+        });
+      });
     }
 
     const deleteEvent = await Event.findByIdAndDelete(id);
