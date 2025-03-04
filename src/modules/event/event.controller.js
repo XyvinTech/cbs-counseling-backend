@@ -199,7 +199,7 @@ exports.getEvents = async (req, res) => {
 
 exports.getCalender = async (req, res) => {
   try {
-    const events = await Event.find().select("title date");
+    const events = await Event.find();
     if (events.length > 0) {
       const mappedData = events.map((event) => {
         return {
