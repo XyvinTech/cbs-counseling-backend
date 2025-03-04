@@ -6,6 +6,7 @@ const Session = require("../../models/sessionModel");
 const User = require("../../models/userModel");
 const { generateCasePDF } = require("../../utils/generateCasePDF");
 const { generateSessionPDF } = require("../../utils/generateSessionPDF");
+const Type = require("../../models/typeModel");
 
 exports.report = async (req, res) => {
   try {
@@ -57,6 +58,8 @@ exports.report = async (req, res) => {
     }
 
     return responseHandler(res, 200, "Excel data created successfully", {
+      title: reportType,
+      subtitle: `${startDate} - ${endDate}`,
       headers,
       data,
     });
@@ -97,7 +100,7 @@ const getGrNumberFilter = async (grNumber) => {
 
 const getDateFilter = (reportType, startDate, endDate) => {
   const filter = {};
-  if (["session", "session-count", "counseling-type"].includes(reportType)) {
+  if (["session", "session-count", "counseling-type", "consolidated"].includes(reportType)) {
     filter.session_date = {
       $gte: new Date(startDate),
       $lte: new Date(endDate),
@@ -143,9 +146,8 @@ const generateSessionReport = async (filter, grNumberFilter) => {
       counseling_type: session.counsellor?.counsellorType || "N/A",
       session_date: moment(session.session_date).format("DD-MM-YYYY"),
       session_time: session.session_time
-        ? `${session.session_time.start || "N/A"} - ${
-            session.session_time.end || "N/A"
-          }`
+        ? `${session.session_time.start || "N/A"} - ${session.session_time.end || "N/A"
+        }`
         : "N/A",
       description: session.description || "N/A",
       status: session.status || "N/A",
@@ -214,9 +216,8 @@ const generateCaseReport = async (filter, grNumberFilter) => {
         ? moment(session.session_date).format("DD-MM-YYYY")
         : "N/A",
       session_time: session.session_time
-        ? `${session.session_time.start || "N/A"} - ${
-            session.session_time.end || "N/A"
-          }`
+        ? `${session.session_time.start || "N/A"} - ${session.session_time.end || "N/A"
+        }`
         : "N/A",
       description: session.description || "N/A",
       case_details: session.case_details || "N/A",
@@ -306,9 +307,8 @@ const generateCounselingTypeReport = async (filter, counselingType) => {
     counseling_type: session.type || "N/A",
     session_date: moment(session.session_date).format("DD-MM-YYYY"),
     session_time: session.session_time
-      ? `${session.session_time.start || "N/A"} - ${
-          session.session_time.end || "N/A"
-        }`
+      ? `${session.session_time.start || "N/A"} - ${session.session_time.end || "N/A"
+      }`
       : "N/A",
     description: session.description || "N/A",
     status: session.status || "N/A",
@@ -318,8 +318,203 @@ const generateCounselingTypeReport = async (filter, counselingType) => {
 };
 
 const generateConsolidatedReport = async (filter) => {
-  
-}
+  // Get all counselors
+  const counselors = await User.find({ userType: "counsellor" });
+
+  // Get all counseling types
+  const counselingTypes = await Type.find();
+
+  // Define headers for the report
+  const headers = [
+    "Particulars",
+    ...counselors.map(counselor => counselor.name)
+  ];
+
+  // Initialize the report data structure
+  const reportData = {
+    studentSessions: {
+      title: "Total number of sessions conducted with students",
+      types: counselingTypes.reduce((acc, type) => {
+        acc[type._id.toString()] = {
+          name: type.name,
+          shortCode: type.name, // Use first letter as shortcode
+          count: 0
+        };
+        return acc;
+      }, {}),
+      data: {}
+    },
+    parentTeacherSessions: {
+      title: "Total number of sessions with Parents (P) Teachers(T)",
+      data: {}
+    },
+    teachingGuidanceSessions: {
+      title: "Teaching/Guidance/classroom sessions",
+      data: {}
+    },
+    meetingsAttended: {
+      title: "Number of other meetings attended (Team/inter dept)",
+      data: {}
+    },
+    workshopsConducted: {
+      title: "Number of workshops/sessions conducted",
+      data: {}
+    }
+  };
+
+  // Initialize data for each counselor
+  counselors.forEach(counselor => {
+    reportData.studentSessions.data[counselor._id] = {
+      total: 0,
+      byType: counselingTypes.reduce((acc, type) => {
+        acc[type._id.toString()] = 0;
+        return acc;
+      }, {})
+    };
+
+    reportData.parentTeacherSessions.data[counselor._id] = {
+      P: 0, // Parents
+      T: 0, // Teachers
+      total: 0
+    };
+
+    reportData.teachingGuidanceSessions.data[counselor._id] = 0;
+    reportData.meetingsAttended.data[counselor._id] = 0;
+    reportData.workshopsConducted.data[counselor._id] = 0;
+  });
+
+  // Get all sessions with the given filter
+  const sessions = await Session.find(filter)
+    .populate({
+      path: "form_id",
+      populate: {
+        path: "referee",
+      },
+    })
+    .populate("case_id")
+    .populate("counsellor");
+
+  // Process each session to populate the report data
+  sessions.forEach(session => {
+    if (!session.counsellor) return;
+
+    const counselorId = session.counsellor._id.toString();
+
+    // Count student sessions by type
+    if (session.form_id && session.form_id.referee === "student") {
+      reportData.studentSessions.data[counselorId].total++;
+
+      // Categorize by session type
+      if (session.type) {
+        // Find the type in our counselingTypes
+        const typeId = counselingTypes.find(
+          type => type.name.toLowerCase() === session.type.toLowerCase()
+        )?._id?.toString();
+
+        if (typeId && reportData.studentSessions.data[counselorId].byType[typeId] !== undefined) {
+          reportData.studentSessions.data[counselorId].byType[typeId]++;
+        }
+      }
+    }
+
+    // Count parent/teacher sessions
+    if (session.form_id) {
+      if (session.form_id.referee === "parent") {
+        reportData.parentTeacherSessions.data[counselorId].P++;
+        reportData.parentTeacherSessions.data[counselorId].total++;
+      } else if (session.form_id.referee === "teacher") {
+        reportData.parentTeacherSessions.data[counselorId].T++;
+        reportData.parentTeacherSessions.data[counselorId].total++;
+      }
+    }
+
+
+    //!todo
+    // Count teaching/guidance sessions
+    if (session.interactions &&
+      (session.interactions.toLowerCase().includes('teaching') ||
+        session.interactions.toLowerCase().includes('guidance') ||
+        session.interactions.toLowerCase().includes('classroom'))) {
+      reportData.teachingGuidanceSessions.data[counselorId]++;
+    }
+
+    //todo
+    // Count meetings attended
+    if (session.interactions &&
+      (session.interactions.toLowerCase().includes('meeting') ||
+        session.interactions.toLowerCase().includes('team') ||
+        session.interactions.toLowerCase().includes('inter dept'))) {
+      reportData.meetingsAttended.data[counselorId]++;
+    }
+
+    //todo from events
+    // Count workshops conducted
+    if (session.interactions &&
+      session.interactions.toLowerCase().includes('workshop')) {
+      reportData.workshopsConducted.data[counselorId]++;
+    }
+  });
+
+  // Format the data for the report
+  const data = [
+    // Row 1: Student sessions
+    {
+      particulars: reportData.studentSessions.title,
+      ...counselors.reduce((acc, counselor) => {
+        const id = counselor._id.toString();
+        const sessionData = reportData.studentSessions.data[id];
+
+        // Create a string with each type's shortcode and count
+        const typeCountsStr = Object.keys(sessionData.byType).map(typeId => {
+          const typeInfo = reportData.studentSessions.types[typeId];
+          return `${typeInfo.shortCode}-${sessionData.byType[typeId]}`;
+        }).join('\n');
+
+        acc[counselor.name] = typeCountsStr;
+        return acc;
+      }, {})
+    },
+    // Row 2: Parent/Teacher sessions
+    {
+      particulars: reportData.parentTeacherSessions.title,
+      ...counselors.reduce((acc, counselor) => {
+        const id = counselor._id.toString();
+        const sessionData = reportData.parentTeacherSessions.data[id];
+        acc[counselor.name] = `P-${sessionData.P}\nT-${sessionData.T}`;
+        return acc;
+      }, {})
+    },
+    // Row 3: Teaching/Guidance sessions
+    {
+      particulars: reportData.teachingGuidanceSessions.title,
+      ...counselors.reduce((acc, counselor) => {
+        const id = counselor._id.toString();
+        acc[counselor.name] = reportData.teachingGuidanceSessions.data[id];
+        return acc;
+      }, {})
+    },
+    // Row 4: Meetings attended
+    {
+      particulars: reportData.meetingsAttended.title,
+      ...counselors.reduce((acc, counselor) => {
+        const id = counselor._id.toString();
+        acc[counselor.name] = reportData.meetingsAttended.data[id];
+        return acc;
+      }, {})
+    },
+    // Row 5: Workshops conducted
+    {
+      particulars: reportData.workshopsConducted.title,
+      ...counselors.reduce((acc, counselor) => {
+        const id = counselor._id.toString();
+        acc[counselor.name] = reportData.workshopsConducted.data[id];
+        return acc;
+      }, {})
+    }
+  ];
+
+  return { headers, data };
+};
 
 exports.caseReport = async (req, res) => {
   try {
@@ -358,3 +553,4 @@ exports.sessionReport = async (req, res) => {
     return responseHandler(res, 500, `Internal Server Error ${error.message}`);
   }
 };
+
