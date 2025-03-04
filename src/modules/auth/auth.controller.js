@@ -38,6 +38,9 @@ exports.login = async (req, res) => {
     }
     const { email, password } = req.body;
     const user = await User.findOne({ email });
+    if (!user) {
+      return responseHandler(res, 404, "User not found");
+    } 
     const comparePassword = await comparePasswords(password, user.password);
     if (!comparePassword) {
       return responseHandler(res, 401, "Invalid password");

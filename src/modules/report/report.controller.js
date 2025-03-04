@@ -49,6 +49,9 @@ exports.report = async (req, res) => {
           counselingType
         ));
         break;
+      case "consolidated":
+        ({ headers, data } = await generateConsolidatedReport(filter));
+        break;
       default:
         return responseHandler(res, 400, "Invalid report type");
     }
@@ -313,6 +316,10 @@ const generateCounselingTypeReport = async (filter, counselingType) => {
 
   return { headers, data };
 };
+
+const generateConsolidatedReport = async (filter) => {
+  
+}
 
 exports.caseReport = async (req, res) => {
   try {

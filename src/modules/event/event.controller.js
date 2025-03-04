@@ -207,6 +207,14 @@ exports.getCalender = async (req, res) => {
           title: event.title,
           start: event.date,
           end: event.date,
+          venue: event.venue,
+          guest: event.guest,
+          type: event.type,
+          details: event.details,
+          creator: event.creator,
+          counselor: event.counselor,
+          requisition_description: event.requisition_description,
+          requisition_image: event.requisition_image,
         };
       });
       return responseHandler(res, 200, "Events found", mappedData);
