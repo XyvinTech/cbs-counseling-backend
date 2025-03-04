@@ -689,6 +689,7 @@ exports.getSessionsWithFormId = async (req, res) => {
           name: "$form_id.name",
           counsellor_name: "$counsellor.name",
           counsellor_type: "$counsellor.counsellorType",
+          session_id: 1,
         },
       },
     ];
