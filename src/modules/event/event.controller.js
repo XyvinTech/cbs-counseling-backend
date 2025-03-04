@@ -201,6 +201,7 @@ exports.getCalender = async (req, res) => {
     if (events.length > 0) {
       const mappedData = events.map((event) => {
         return {
+          _id: event._id,
           title: event.title,
           start: event.date,
           end: event.date,

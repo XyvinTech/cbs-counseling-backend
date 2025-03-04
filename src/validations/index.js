@@ -70,10 +70,11 @@ exports.createEventSchema = Joi.object({
   venue: Joi.string().allow(""),
   guest: Joi.string().allow(""),
   requisition_image: Joi.string(),
-  remainder: Joi.array().required(),
-  details: Joi.string().required(),
-  creator: Joi.string().required(),
-  counselor: Joi.array().required(),
+  remainder: Joi.array(),
+  type: Joi.string(),
+  details: Joi.string(),
+  creator: Joi.string(),
+  counselor: Joi.array(),
   requisition_description: Joi.string().allow(""),
 });
 
@@ -84,6 +85,7 @@ exports.editEventSchema = Joi.object({
   guest: Joi.string().allow(""),
   requisition_image: Joi.string(),
   remainder: Joi.array(),
+  type: Joi.string(),
   creator: Joi.string(),
   counselor: Joi.array(),
   details: Joi.string(),
