@@ -7,7 +7,7 @@ const User = require("../../models/userModel");
 const { generateCasePDF } = require("../../utils/generateCasePDF");
 const { generateSessionPDF } = require("../../utils/generateSessionPDF");
 const Type = require("../../models/typeModel");
-
+const Event = require("../../models/eventModel");
 exports.report = async (req, res) => {
   try {
     const {
@@ -383,6 +383,35 @@ const generateConsolidatedReport = async (filter) => {
     reportData.workshopsConducted.data[counselor._id] = 0;
   });
 
+  // Create date filter for events based on the session filter
+
+
+  // Get all events with the type "session / workshop" and the date filter
+  const eventDateFilter = {};
+  if (filter.session_date) {
+    eventDateFilter.date = filter.session_date;
+  }
+  const events = await Event.find({
+    ...eventDateFilter,
+    type: "session / workshop"
+  }).populate('counselor');
+  console.log(events);
+
+  // Count workshops by counselor
+  events.forEach(event => {
+    if (event.counselor && event.counselor.length > 0) {
+      // Count for each counselor assigned to this event
+      event.counselor.forEach(counselor => {
+        const counselorIdStr = counselor._id.toString();
+        if (reportData.workshopsConducted.data[counselorIdStr] !== undefined) {
+          reportData.workshopsConducted.data[counselorIdStr]++;
+        } else {
+          reportData.workshopsConducted.data[counselorIdStr] = 1;
+        }
+      });
+    }
+  });
+
   // Get all sessions with the given filter
   const sessions = await Session.find(filter)
     .populate({
@@ -399,10 +428,9 @@ const generateConsolidatedReport = async (filter) => {
     if (!session.counsellor) return;
 
     const counselorId = session.counsellor._id.toString();
-    console.log({ type: session.type, counsellor: counselorId });
 
     // Count student sessions by type
-    if (session ) {
+    if (session) {
       reportData.studentSessions.data[counselorId].total++;
 
       // Categorize by session type
@@ -429,8 +457,6 @@ const generateConsolidatedReport = async (filter) => {
       }
     }
 
-
-    //!todo
     // Count teaching/guidance sessions
     if (session.interactions &&
       (session.interactions.toLowerCase().includes('teaching') ||
@@ -439,20 +465,12 @@ const generateConsolidatedReport = async (filter) => {
       reportData.teachingGuidanceSessions.data[counselorId]++;
     }
 
-    //todo
     // Count meetings attended
     if (session.interactions &&
       (session.interactions.toLowerCase().includes('meeting') ||
         session.interactions.toLowerCase().includes('team') ||
         session.interactions.toLowerCase().includes('inter dept'))) {
       reportData.meetingsAttended.data[counselorId]++;
-    }
-
-    //todo from events
-    // Count workshops conducted
-    if (session.interactions &&
-      session.interactions.toLowerCase().includes('workshop')) {
-      reportData.workshopsConducted.data[counselorId]++;
     }
   });
 
