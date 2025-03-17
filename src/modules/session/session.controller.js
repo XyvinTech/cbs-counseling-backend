@@ -8,7 +8,6 @@ const validations = require("../../validations");
 const sendMail = require("../../utils/sendMail");
 const mongoose = require("mongoose");
 const User = require("../../models/userModel");
-const mongoose = require("mongoose");
 
 exports.createForm = async (req, res) => {
   try {
