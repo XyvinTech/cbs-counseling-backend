@@ -483,8 +483,8 @@ exports.getCases = async (req, res) => {
       }).select("_id");
 
       filter.$or = [
-        { form_id: { $in: matchedForms.map((form) => form._id) } }, 
-        { session_ids: { $in: matchedSessions.map((s) => s._id) } }, 
+        { form_id: { $in: matchedForms.map((form) => form._id) } },
+        { session_ids: { $in: matchedSessions.map((s) => s._id) } },
       ];
     }
 
@@ -533,28 +533,80 @@ exports.getCases = async (req, res) => {
 exports.getRemark = async (req, res) => {
   try {
     const { searchQuery, status } = req.query;
-    const filter = {
+    const matchStage = {
       referer: req.userId,
     };
+
     if (status) {
-      filter.status = status;
+      matchStage.status = status;
     }
+
+    const pipeline = [
+      { $match: matchStage },
+      {
+        $lookup: {
+          from: "forms",
+          localField: "form_id",
+          foreignField: "_id",
+          as: "form",
+        },
+      },
+      { $unwind: "$form" },
+    ];
+
     if (searchQuery) {
-      filter.$or = [{ "form_id.name": { $regex: searchQuery, $options: "i" } }];
+      pipeline.push({
+        $match: {
+          "form.name": { $regex: searchQuery, $options: "i" },
+        },
+      });
     }
-    const sessions = await Case.find(filter)
-      .populate("session_ids")
-      .populate("form_id");
-    const mappedData = sessions.map((item) => {
-      return {
-        ...item._doc,
-        user_name: item.form_id.name,
-        couselling_type: item.session_ids[item.session_ids.length - 1].type,
-        description: item.session_ids[item.session_ids.length - 1].description,
-      };
-    });
-    const totalCount = await Case.countDocuments(filter);
-    return responseHandler(res, 200, "Remark found", mappedData, totalCount);
+
+    pipeline.push(
+      {
+        $lookup: {
+          from: "sessions",
+          localField: "session_ids",
+          foreignField: "_id",
+          as: "sessions",
+        },
+      },
+      {
+        $addFields: {
+          lastSession: { $arrayElemAt: ["$sessions", -1] },
+        },
+      },
+      {
+        $project: {
+          _id: 1,
+          user_name: "$form.name",
+          couselling_type: "$lastSession.type",
+          description: "$lastSession.description",
+          status: 1,
+          referer: 1,
+          form_id: 1,
+          session_ids: 1, 
+          case_id: 1,
+          session_date: 1,
+          interactions: 1,
+          type: 1,
+          report: 1,
+          case_details: 1,
+          reschedule_remark: 1,
+          cancel_remark: 1,
+          c_reschedule_remark: 1,
+          c_cancel_remark: 1,
+          isDeleted: 1,
+          createdAt: 1,
+          updatedAt: 1,
+        },
+      }
+    );
+
+    const sessions = await Case.aggregate(pipeline);
+    const totalCount = sessions.length;
+
+    return responseHandler(res, 200, "Remark found", sessions, totalCount);
   } catch (error) {
     return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
   }
