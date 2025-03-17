@@ -556,7 +556,7 @@ exports.getRemark = async (req, res) => {
     if (searchQuery) {
       pipeline.push({
         $match: {
-          "form.name": { $regex: searchQuery, $options: "i" },
+          "form.name": { $regex: `^${searchQuery}`, $options: "i" },
         },
       });
     }
