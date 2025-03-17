@@ -912,6 +912,7 @@ exports.addEntry = async (req, res) => {
       with_session,
       report,
       isEditable,
+      session_type,
     } = req.body;
 
     const createSessionValidator =
@@ -936,7 +937,8 @@ exports.addEntry = async (req, res) => {
         session_id,
         details,
         interactions,
-        report
+        report,
+        session_type
       );
       await Case.findByIdAndUpdate(
         updateSession.case_id,
@@ -961,7 +963,8 @@ exports.addEntry = async (req, res) => {
         interactions,
         concern_raised,
         reason_for_closing,
-        report
+        report,
+        session_type
       );
       if (!closeCase) return responseHandler(res, 400, "Case close failed");
       return responseHandler(res, 200, "Case closed successfully", closeCase);
@@ -979,7 +982,8 @@ exports.addEntry = async (req, res) => {
         time,
         form_id,
         checkSession,
-        report
+        report,
+        session_type
       );
       return responseHandler(res, 201, "Session created successfully", session);
     } else if (refer) {
@@ -991,14 +995,21 @@ exports.addEntry = async (req, res) => {
         interactions,
         concern_raised,
         checkSession,
-        report
+        report,
+        session_type
       );
       return responseHandler(res, 200, "Case referred successfully");
     }
 
     await Session.findByIdAndUpdate(
       session_id,
-      { case_details: details, interactions, status: "completed", report },
+      {
+        case_details: details,
+        interactions,
+        status: "completed",
+        report,
+        session_type,
+      },
       { new: true }
     );
 
@@ -1019,6 +1030,7 @@ exports.addEntry = async (req, res) => {
       session_id: sc_id,
       case_id: id,
       report,
+      session_type,
     };
 
     const newSessionRes = await createNewSession(sessionData);
@@ -1082,11 +1094,12 @@ const updateSessionDetails = async (
   session_id,
   details,
   interactions,
-  report
+  report,
+  session_type
 ) => {
   return await Session.findByIdAndUpdate(
     session_id,
-    { case_details: details, interactions, report },
+    { case_details: details, interactions, report, session_type },
     { new: true }
   );
 };
@@ -1098,7 +1111,8 @@ const closeCaseAndSession = async (
   interactions,
   concern_raised,
   reason_for_closing,
-  report
+  report,
+  session_type
 ) => {
   const closeCase = await Case.findByIdAndUpdate(
     id,
@@ -1108,7 +1122,13 @@ const closeCaseAndSession = async (
 
   await Session.findByIdAndUpdate(
     session_id,
-    { case_details: details, interactions, status: "completed", report },
+    {
+      case_details: details,
+      interactions,
+      status: "completed",
+      report,
+      session_type,
+    },
     { new: true }
   );
 
@@ -1155,7 +1175,8 @@ const handleReferralWithSession = async (
   time,
   form_id,
   checkSession,
-  report
+  report,
+  session_type
 ) => {
   const refCase = await Case.findByIdAndUpdate(
     id,
@@ -1165,7 +1186,13 @@ const handleReferralWithSession = async (
 
   await Session.findByIdAndUpdate(
     session_id,
-    { case_details: details, interactions, status: "completed", report },
+    {
+      case_details: details,
+      interactions,
+      status: "completed",
+      report,
+      session_type,
+    },
     { new: true }
   );
 
@@ -1233,7 +1260,8 @@ const handleReferralWithoutSession = async (
   interactions,
   concern_raised,
   checkSession,
-  report
+  report,
+  session_type
 ) => {
   const counsellor = await User.findById(refer);
   const fetchCase = await Case.findById(id).populate("form_id");
@@ -1250,7 +1278,7 @@ const handleReferralWithoutSession = async (
 
   await Session.findByIdAndUpdate(
     session_id,
-    { details, interactions, report },
+    { details, interactions, report, session_type },
     { new: true }
   );
 

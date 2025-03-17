@@ -125,6 +125,7 @@ exports.createSessionEntrySchema = Joi.object({
   }),
   form_id: Joi.string().required(),
   session_id: Joi.string().required(),
+  session_type: Joi.string(),
   close: Joi.boolean(),
   refer: Joi.string(),
   interactions: Joi.string(),
