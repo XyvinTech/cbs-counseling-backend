@@ -641,7 +641,13 @@ exports.getSessionsWithCaseId = async (req, res) => {
       };
     });
 
-    return responseHandler(res, 200, "Sessions found", mappedData);
+    return responseHandler(
+      res,
+      200,
+      "Sessions found",
+      mappedData,
+      sessions.length
+    );
   } catch (error) {
     return responseHandler(res, 500, `Internal Server Error ${error.message}`);
   }
