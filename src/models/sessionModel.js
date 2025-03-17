@@ -16,6 +16,7 @@ const sessionSchema = mongoose.Schema(
     },
     interactions: { type: String },
     type: { type: String },
+    session_type: { type: String },
     status: {
       type: String,
       enum: ["pending", "progress", "cancelled", "completed", "rescheduled"],
