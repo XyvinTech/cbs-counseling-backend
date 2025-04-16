@@ -23,7 +23,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }} # Your private SSH key (ensure it has no passphrase)
           port: ${{ secrets.SERVER_PORT }} # SSH port (usually 22)
           script: |
-            cd C:/cbs-councelling-app/counseling-backend  # Path to your Node.js app on the server
+            cd C:/cbs-councelling-app/counseling-backend-new  # Path to your Node.js app on the server
             git pull origin main  # Pull latest code from GitHub
             npm install  # Install/update dependencies
             npm start  # Restart the app using PM2 (if you're using PM2)
