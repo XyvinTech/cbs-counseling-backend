@@ -11,6 +11,8 @@ const {
 const Session = require("../../models/sessionModel");
 const Case = require("../../models/caseModel");
 const Notification = require("../../models/notificationModel");
+const path = require("path");
+const fs = require("fs");
 
 exports.createUser = async (req, res) => {
   try {
@@ -256,5 +258,40 @@ exports.getCounsellors = async (req, res) => {
     return responseHandler(res, 404, "No counsellors found");
   } catch (error) {
     return responseHandler(res, 500, `Internal Server Error ${error.message}`);
+  }
+};
+
+function normalizeExtendedJSON(obj) {
+  if (Array.isArray(obj)) {
+    return obj.map(normalizeExtendedJSON);
+  } else if (obj && typeof obj === "object") {
+    if ("$oid" in obj) return obj.$oid;
+    if ("$date" in obj) return new Date(obj.$date);
+
+    const normalized = {};
+    for (const key in obj) {
+      normalized[key] = normalizeExtendedJSON(obj[key]);
+    }
+    return normalized;
+  }
+  return obj;
+}
+
+exports.seedUsers = async (req, res) => {
+  try {
+    await User.deleteMany({});
+    console.log("🗑️ All existing users deleted");
+
+    const rawData = req.file.buffer.toString("utf-8");
+    const parsedData = JSON.parse(rawData);
+
+    const users = normalizeExtendedJSON(parsedData);
+
+    await User.insertMany(users);
+    console.log(`✅ Inserted ${users.length} users from JSON`);
+
+    return responseHandler(res, 200, "Users seeded successfully!");
+  } catch (error) {
+    return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
   }
 };
