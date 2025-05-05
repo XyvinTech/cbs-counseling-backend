@@ -118,9 +118,18 @@ exports.getSessions = async (req, res) => {
       filter.status = status;
     }
     if (searchQuery) {
+      const nameFilter = { name: { $regex: searchQuery, $options: "i" } };
+
+      const matchedForms = await Form.find(nameFilter).select("_id");
+
+      const matchedCounsellors = await User.find(nameFilter)
+        .where("userType")
+        .equals("counsellor")
+        .select("_id");
+
       filter.$or = [
-        { "form_id.name": { $regex: searchQuery, $options: "i" } },
-        { "counsellor.name": { $regex: searchQuery, $options: "i" } },
+        { form_id: { $in: matchedForms.map((f) => f._id) } },
+        { counsellor: { $in: matchedCounsellors.map((c) => c._id) } },
       ];
     }
     const sessions = await Session.find(filter)
