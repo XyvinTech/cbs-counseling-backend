@@ -21,9 +21,4 @@ jobs:
       - name: Restart App
         run: |
           cd C:\cbs-councelling-app\counseling-backend
-          try {
-            taskkill /IM node.exe /F
-          } catch {
-            Write-Output "Node was not running"
-          }
-          Start-Process "npm" -ArgumentList "start"
+          npm start
