@@ -21,5 +21,9 @@ jobs:
       - name: Restart App
         run: |
           cd C:\cbs-councelling-app\counseling-backend
-          taskkill /IM node.exe /F || echo "Node not running"
-          start "" "npm" start
+          try {
+            taskkill /IM node.exe /F
+          } catch {
+            Write-Output "Node was not running"
+          }
+          Start-Process "npm" -ArgumentList "start"
