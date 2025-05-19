@@ -21,4 +21,4 @@ jobs:
       - name: Restart App
         run: |
           cd C:\cbs-councelling-app\counseling-backend
-          npm start
+          pm2 restart app
