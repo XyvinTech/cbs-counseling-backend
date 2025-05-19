@@ -3,27 +3,23 @@ name: Deploy Node.js to Windows Server
 on:
   push:
     branches:
-      - main # Trigger deployment on pushes to the main branch
+      - main
 
 jobs:
   deploy:
-    runs-on: self-hosted 
+    runs-on: self-hosted  # Your Windows server runner
 
     steps:
-      # Check out the code from the repository
       - name: Checkout code
-        uses: actions/checkout@v3 # Use the latest version of the checkout action
+        uses: actions/checkout@v3
 
-      # Deploy via SSH to the Windows Server
-      - name: Deploy to Windows Server
-        uses: appleboy/ssh-action@v0.1.8 # Using the specific version of the SSH action
-        with:
-          host: ${{ secrets.SERVER_PUBLIC_IP }} # Public IP of your Windows server
-          username: ${{ secrets.SERVER_SSH_USERNAME }} # Your server's SSH username
-          key: ${{ secrets.SSH_PRIVATE_KEY }} # Your private SSH key (ensure it has no passphrase)
-          port: ${{ secrets.SERVER_PORT }} # SSH port (usually 22)
-          script: |
-            cd C:/cbs-councelling-app/counseling-backend  # Path to your Node.js app on the server
-            git pull origin main  # Pull latest code from GitHub
-            npm install  # Install/update dependencies
-            npm start  # Restart the app using PM2 (if you're using PM2)
+      - name: Install dependencies
+        run: |
+          cd C:\cbs-councelling-app\counseling-backend
+          npm install
+
+      - name: Restart App
+        run: |
+          cd C:\cbs-councelling-app\counseling-backend
+          taskkill /IM node.exe /F || echo "Node not running"
+          start "" "npm" start
