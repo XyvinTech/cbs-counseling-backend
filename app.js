@@ -19,7 +19,7 @@ const sessionRoute = require("./src/modules/session/session.routes");
 const timeRoute = require("./src/modules/time/time.routes");
 const reportRoute = require("./src/modules/report/report.routes");
 
-//! Create an instance of the Express application
+//! Creatde an instance of the Express application
 const app = express();
 //* Define the PORT & API version based on environment variable
 const { PORT, API_VERSION, NODE_ENV, HTTP_PORT } = process.env;
