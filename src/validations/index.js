@@ -76,8 +76,8 @@ exports.createEventSchema = Joi.object({
   creator: Joi.string(),
   counselor: Joi.array(),
   requisition_description: Joi.string().allow(""),
-  start_time: Joi.date(),
-  end_time: Joi.date(),
+  start_time: Joi.string(),
+  end_time: Joi.string(),
 });
 
 exports.editEventSchema = Joi.object({
@@ -92,8 +92,8 @@ exports.editEventSchema = Joi.object({
   counselor: Joi.array(),
   details: Joi.string(),
   requisition_description: Joi.string().allow(""),
-  start_time: Joi.date(),
-  end_time: Joi.date(),
+  start_time: Joi.string(),
+  end_time: Joi.string(),
 });
 
 exports.formSchema = Joi.object({

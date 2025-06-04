@@ -28,8 +28,8 @@ const eventSchema = mongoose.Schema(
         ref: "User",
       },
     ],
-    start_time: { type: Date },
-    end_time: { type: Date },
+    start_time: { type: String },
+    end_time: { type: String },
   },
   { timestamps: true }
 );
