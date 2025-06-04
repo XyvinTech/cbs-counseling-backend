@@ -202,7 +202,7 @@ exports.getEvents = async (req, res) => {
 
     let user = req.user;
     if (user.userType === "counsellor") {
-      filter.counselor = [user._id];
+      filter.counselor = { $in: [user._id] };
     }
 
     const count = await Event.countDocuments(filter);
@@ -223,7 +223,7 @@ exports.getCalender = async (req, res) => {
     let user = req.user;
     let filter = {};
     if (user.userType === "counsellor") {
-      filter.counselor = [user._id];
+      filter.counselor = { $in: [user._id] };
     }
     const events = await Event.find(filter);
     if (events.length > 0) {
@@ -264,7 +264,7 @@ exports.getEvent = async (req, res) => {
       _id: id,
     };
     if (user.userType === "counsellor") {
-      filter.counselor = [user._id];
+      filter.counselor = { $in: [user._id] };
     }
     const event = await Event.findById(filter);
     if (event) {
