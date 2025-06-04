@@ -3,6 +3,7 @@ const fs = require("fs");
 const path = require("path");
 const Event = require("../../models/eventModel");
 const validations = require("../../validations");
+const User = require("../../models/userModel");
 
 exports.createEvent = async (req, res) => {
   try {
@@ -19,6 +20,14 @@ exports.createEvent = async (req, res) => {
         `Invalid input: ${createEventValidator.error}`
       );
     }
+
+    if (req.body.counselor && req.body.counselor.length > 0) {
+      if (req.body.counselor[0] === "*") {
+        let allUsers = await User.find({ userType: "counsellor" });
+        req.body.counselor = allUsers.map((user) => user._id);
+      }
+    }
+
     const newEvent = await Event.create(req.body);
 
     if (newEvent) {
@@ -55,6 +64,13 @@ exports.editEvent = async (req, res) => {
     const findEvent = await Event.findById(id);
     if (!findEvent) {
       return responseHandler(res, 404, "Event not found");
+    }
+
+    if (req.body.counselor && req.body.counselor.length > 0) {
+      if (req.body.counselor[0] === "*") {
+        let allUsers = await User.find({ userType: "counsellor" });
+        req.body.counselor = allUsers.map((user) => user._id);
+      }
     }
 
     const updateEvent = await Event.findByIdAndUpdate(id, req.body, {
@@ -184,6 +200,11 @@ exports.getEvents = async (req, res) => {
       filter.$or = [{ title: { $regex: searchQuery, $options: "i" } }];
     }
 
+    let user = req.user;
+    if (user.userType === "counsellor") {
+      filter.counselor = [user._id];
+    }
+
     const count = await Event.countDocuments(filter);
     const events = await Event.find(filter)
       .skip(skipCount)
@@ -199,7 +220,12 @@ exports.getEvents = async (req, res) => {
 
 exports.getCalender = async (req, res) => {
   try {
-    const events = await Event.find();
+    let user = req.user;
+    let filter = {};
+    if (user.userType === "counsellor") {
+      filter.counselor = [user._id];
+    }
+    const events = await Event.find(filter);
     if (events.length > 0) {
       const mappedData = events.map((event) => {
         return {
@@ -213,6 +239,8 @@ exports.getCalender = async (req, res) => {
           details: event.details,
           creator: event.creator,
           counselor: event.counselor,
+          start_time: event.start_time,
+          end_time: event.end_time,
           requisition_description: event.requisition_description,
           requisition_image: event.requisition_image,
         };
@@ -231,7 +259,14 @@ exports.getEvent = async (req, res) => {
     if (!id) {
       return responseHandler(res, 400, "Event ID is required");
     }
-    const event = await Event.findById(id);
+    let user = req.user;
+    let filter = {
+      _id: id,
+    };
+    if (user.userType === "counsellor") {
+      filter.counselor = [user._id];
+    }
+    const event = await Event.findById(filter);
     if (event) {
       return responseHandler(res, 200, "Success", event);
     }
