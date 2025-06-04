@@ -92,6 +92,8 @@ exports.editEventSchema = Joi.object({
   counselor: Joi.array(),
   details: Joi.string(),
   requisition_description: Joi.string().allow(""),
+  start_time: Joi.date(),
+  end_time: Joi.date(),
 });
 
 exports.formSchema = Joi.object({
