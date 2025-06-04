@@ -30,12 +30,6 @@ const eventSchema = mongoose.Schema(
     ],
     start_time: { type: Date },
     end_time: { type: Date },
-    participants: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
-      },
-    ],
   },
   { timestamps: true }
 );
