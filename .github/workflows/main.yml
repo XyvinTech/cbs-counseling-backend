@@ -23,7 +23,7 @@ jobs:
       #   shell: powershell
       #   continue-on-error: true
         
-      
+
       - name: Delete package-lock.json if exists to prevent EPERM
         run: |
           $lockFile = "C:\cbs-councelling-app\counseling-backend\package-lock.json"
@@ -42,5 +42,5 @@ jobs:
       - name: Restart App
         run: |
           cd C:\cbs-councelling-app\counseling-backend
-          pm2 restart app || pm2 start app
+          npm start
         shell: cmd
