@@ -18,12 +18,22 @@ jobs:
         with:
           node-version: "18"
 
+      - name: Remove locked package-lock.json if exists (to avoid EPERM)
+        run: |
+          $lockFile = "C:\cbs-councelling-app\counseling-backend\package-lock.json"
+          if (Test-Path $lockFile) {
+            Remove-Item -Force -Path $lockFile
+          }
+        shell: pwsh
+
       - name: Install dependencies
         run: |
           cd C:\cbs-councelling-app\counseling-backend
           npm install
+        shell: cmd
 
       - name: Restart App
         run: |
           cd C:\cbs-councelling-app\counseling-backend
           pm2 restart app
+        shell: cmd
