@@ -16,12 +16,12 @@ jobs:
         with:
           node-version: "18"
           
-      - name: Stop existing processes
-        run: |
-          pm2 stop all
-          Start-Sleep -Seconds 2
-        shell: powershell
-        continue-on-error: true
+      # - name: Stop existing processes
+      #   run: |
+      #     pm2 stop all
+      #     Start-Sleep -Seconds 2
+      #   shell: powershell
+      #   continue-on-error: true
         
       - name: Delete package-lock.json if exists to prevent EPERM
         run: |
