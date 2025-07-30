@@ -18,7 +18,7 @@ jobs:
           
       - name: Stop existing processes
         run: |
-          pm2 stop all || echo "No PM2 processes running"
+          pm2 stop all
           Start-Sleep -Seconds 2
         shell: powershell
         continue-on-error: true
