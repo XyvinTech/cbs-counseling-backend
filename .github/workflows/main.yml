@@ -46,5 +46,5 @@ jobs:
       - name: Restart App
         run: |
           cd C:\cbs-councelling-app\counseling-backend
-          pm2 restart all
+          pm2 start app.js --name counseling-backend
         shell: cmd
