@@ -1,5 +1,4 @@
 name: Deploy Node.js to Windows Server
-
 on:
   push:
     branches:
@@ -7,32 +6,40 @@ on:
 
 jobs:
   deploy:
-    runs-on: self-hosted # Your Windows server runner
-
+    runs-on: self-hosted
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-
+        
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
           node-version: "18"
-
+          
+      - name: Stop existing processes
+        run: |
+          pm2 stop all || echo "No PM2 processes running"
+          Start-Sleep -Seconds 2
+        shell: powershell
+        continue-on-error: true
+        
       - name: Delete package-lock.json if exists to prevent EPERM
         run: |
-          if exist "C:\cbs-councelling-app\counseling-backend\package-lock.json" (
-            del /f "C:\cbs-councelling-app\counseling-backend\package-lock.json"
-          )
-        shell: cmd
-
+          $lockFile = "C:\cbs-councelling-app\counseling-backend\package-lock.json"
+          if (Test-Path $lockFile) {
+            Remove-Item $lockFile -Force -ErrorAction SilentlyContinue
+            Write-Host "Deleted package-lock.json"
+          }
+        shell: powershell
+        
       - name: Install dependencies
         run: |
           cd C:\cbs-councelling-app\counseling-backend
-          npm install
+          npm install --no-package-lock
         shell: cmd
-
+        
       - name: Restart App
         run: |
           cd C:\cbs-councelling-app\counseling-backend
-          pm2 restart app
+          pm2 restart app || pm2 start app
         shell: cmd
