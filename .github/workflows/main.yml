@@ -7,7 +7,7 @@ on:
 
 jobs:
   deploy:
-    runs-on: self-hosted  # Your Windows server runner
+    runs-on: self-hosted # Your Windows server runner
 
     steps:
       - name: Checkout code
@@ -18,13 +18,12 @@ jobs:
         with:
           node-version: "18"
 
-      - name: Remove locked package-lock.json if exists (to avoid EPERM)
+      - name: Delete package-lock.json if exists to prevent EPERM
         run: |
-          $lockFile = "C:\cbs-councelling-app\counseling-backend\package-lock.json"
-          if (Test-Path $lockFile) {
-            Remove-Item -Force -Path $lockFile
-          }
-        shell: pwsh
+          if exist "C:\cbs-councelling-app\counseling-backend\package-lock.json" (
+            del /f "C:\cbs-councelling-app\counseling-backend\package-lock.json"
+          )
+        shell: cmd
 
       - name: Install dependencies
         run: |
