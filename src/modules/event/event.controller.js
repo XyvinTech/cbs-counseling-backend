@@ -25,6 +25,12 @@ exports.createEvent = async (req, res) => {
       if (req.body.counselor[0] === "*") {
         let allUsers = await User.find({ userType: "counsellor" });
         req.body.counselor = allUsers.map((user) => user._id);
+      } else {
+        if (req.user.userType === "counsellor") {
+          req.body.counselor = [
+            ...new Set([...req.body.counselor, req.userId]),
+          ];
+        }
       }
     }
 
