@@ -10,21 +10,17 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-        
+
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
           node-version: "18"
-          
-      - name: Stop existing processes
-        run: |
-          pm2 stop all
-          Start-Sleep -Seconds 2
-        shell: powershell
-        continue-on-error: true
-        
 
-      - name: Delete package-lock.json if exists to prevent EPERM
+      - name: Set PM2 Home
+        run: echo "PM2_HOME=C:\Users\runneradmin\.pm2" >> $env:GITHUB_ENV
+        shell: powershell
+
+      - name: Delete package-lock.json if exists
         run: |
           $lockFile = "C:\cbs-councelling-app\counseling-backend\package-lock.json"
           if (Test-Path $lockFile) {
@@ -32,19 +28,20 @@ jobs:
             Write-Host "Deleted package-lock.json"
           }
         shell: powershell
-        
+
       - name: Install dependencies
         run: |
           cd C:\cbs-councelling-app\counseling-backend
           npm install --no-package-lock
         shell: cmd
 
-      - name: Install PM2 globally (if not available)
+      - name: Install PM2 globally
         run: npm install -g pm2
         shell: cmd
-        
-      - name: Restart App
+
+      - name: Restart App with PM2
         run: |
           cd C:\cbs-councelling-app\counseling-backend
+          pm2 delete counseling-backend || exit 0
           pm2 start app.js --name counseling-backend
         shell: cmd
