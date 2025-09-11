@@ -17,7 +17,7 @@ jobs:
           node-version: "18"
 
       - name: Set PM2 Home
-        run: echo "PM2_HOME=C:\Users\runneradmin\.pm2" >> $env:GITHUB_ENV
+        run: echo "PM2_HOME=C:\cbs-councelling-app\.pm2" >> $env:GITHUB_ENV
         shell: powershell
 
       - name: Delete package-lock.json if exists
