@@ -50,7 +50,7 @@ exports.login = async (req, res) => {
       token,
       userType: user.userType,
     };
-    return responseHandler(res, 200, "Success", data);
+    return responseHandler(res, 200, "Login successful", data);
   } catch (error) {
     return responseHandler(res, 500, `Internal Server Error ${error.message}`);
   }
