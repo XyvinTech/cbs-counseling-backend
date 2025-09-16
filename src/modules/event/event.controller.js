@@ -21,6 +21,12 @@ exports.createEvent = async (req, res) => {
       );
     }
 
+    if (!req.body.counselor) {
+      if (req.user.userType === "counsellor") {
+        req.body.counselor = [req.userId];
+      }
+    }
+
     if (req.body.counselor && req.body.counselor.length > 0) {
       if (req.body.counselor[0] === "*") {
         let allUsers = await User.find({ userType: "counsellor" });
