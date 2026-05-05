@@ -13,6 +13,21 @@ const Case = require("../../models/caseModel");
 const Notification = require("../../models/notificationModel");
 const path = require("path");
 const fs = require("fs");
+const csv = require("csv-parser");
+const { Readable } = require("stream");
+
+function normalizeCode(code) {
+  return String(code).trim();
+}
+
+function normalizePhone(phone) {
+  if (!phone) return phone;
+  phone = String(phone).trim();
+  if (!phone.startsWith("968") && !phone.startsWith("+968")) {
+    phone = "+968" + phone;
+  }
+  return phone;
+}
 
 exports.createUser = async (req, res) => {
   try {
@@ -280,7 +295,6 @@ function normalizeExtendedJSON(obj) {
 exports.seedUsers = async (req, res) => {
   try {
     await User.deleteMany({});
-    console.log("🗑️ All existing users deleted");
 
     const rawData = req.file.buffer.toString("utf-8");
     const parsedData = JSON.parse(rawData);
@@ -288,9 +302,166 @@ exports.seedUsers = async (req, res) => {
     const users = normalizeExtendedJSON(parsedData);
 
     await User.insertMany(users);
-    console.log(`✅ Inserted ${users.length} users from JSON`);
 
     return responseHandler(res, 200, "Users seeded successfully!");
+  } catch (error) {
+    return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
+  }
+};
+
+exports.importUsersCSV = async (req, res) => {
+  try {
+    if (!req.file) {
+      return responseHandler(res, 400, "No CSV file uploaded.");
+    }
+
+    // 🔥 Fix StudentReferencesCode types (from numbers to strings)
+    const fixResult = await User.updateMany(
+      {
+        StudentReferencesCode: {
+          $type: ["int", "long", "double"],
+        },
+      },
+      [
+        {
+          $set: {
+            StudentReferencesCode: {
+              $toString: "$StudentReferencesCode",
+            },
+          },
+        },
+      ]
+    );
+
+    const results = [];
+    const seenCodes = new Set();
+    const batchSize = 500;
+
+    const stream = Readable.from(req.file.buffer);
+
+    stream
+      .pipe(csv())
+      .on("data", (data) => results.push(data))
+      .on("error", (error) => {
+        return responseHandler(res, 500, `CSV parse error: ${error.message}`);
+      })
+      .on("end", async () => {
+        try {
+          for (let i = 0; i < results.length; i += batchSize) {
+            const batch = results.slice(i, i + batchSize);
+            const bulkOps = [];
+
+            for (let user of batch) {
+              let {
+                StudentReferencesCode,
+                designation,
+                division,
+                name,
+                gender,
+                email,
+                mobile,
+                parentContact,
+                userType,
+              } = user;
+
+              if (!StudentReferencesCode) {
+                continue;
+              }
+
+              StudentReferencesCode = normalizeCode(StudentReferencesCode);
+              mobile = normalizePhone(mobile);
+              parentContact = normalizePhone(parentContact);
+
+              seenCodes.add(StudentReferencesCode);
+
+              bulkOps.push({
+                updateOne: {
+                  filter: { StudentReferencesCode },
+                  update: {
+                    $set: {
+                      designation,
+                      division,
+                      name,
+                      gender,
+                      email,
+                      mobile,
+                      parentContact,
+                      userType,
+                      status: true,
+                    },
+                  },
+                  upsert: true,
+                },
+              });
+            }
+
+            if (bulkOps.length > 0) {
+              const result = await User.bulkWrite(bulkOps);
+            }
+          }
+
+          if (seenCodes.size > 0) {
+            const inactiveResult = await User.updateMany(
+              {
+                StudentReferencesCode: {
+                  $nin: Array.from(seenCodes),
+                },
+              },
+              { $set: { status: false } }
+            );
+          }
+
+          return responseHandler(res, 200, "Users imported successfully!");
+        } catch (error) {
+          return responseHandler(res, 500, `Error processing CSV: ${error.message}`);
+        }
+      });
+  } catch (error) {
+    return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
+  }
+};
+
+exports.exportUsersCSV = async (req, res) => {
+  try {
+    const users = await User.find({ status: { $ne: false } }).lean();
+    
+    const fields = [
+      "StudentReferencesCode",
+      "designation",
+      "division",
+      "name",
+      "gender",
+      "email",
+      "mobile",
+      "parentContact",
+      "userType",
+    ];
+
+    const csvRows = [];
+    csvRows.push(fields.join(","));
+
+    for (const user of users) {
+      const values = fields.map((field) => {
+        let value = user[field];
+        if (value === undefined || value === null) {
+          value = "";
+        } else {
+          value = String(value).replace(/"/g, '""');
+          if (value.includes(',') || value.includes('\n') || value.includes('"')) {
+            value = `"${value}"`;
+          }
+        }
+        return value;
+      });
+      csvRows.push(values.join(","));
+    }
+
+    const csvString = csvRows.join("\n");
+
+    res.setHeader("Content-Type", "text/csv");
+    res.setHeader("Content-Disposition", 'attachment; filename="student.csv"');
+    
+    return res.status(200).send(csvString);
   } catch (error) {
     return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
   }

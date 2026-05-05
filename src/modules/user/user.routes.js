@@ -12,6 +12,8 @@ router.route("/").post(user.createUser).get(user.getProfile);
 router.route("/bulk").post(user.bulkCreate).delete(user.bulkDelete);
 router.get("/list", user.getUsers);
 router.post("/seed-users", upload.single("file"), user.seedUsers);
+router.post("/import-users-csv", upload.single("file"), user.importUsersCSV);
+router.get("/export-users-csv", user.exportUsersCSV);
 router
   .route("/:id")
   .get(user.getUser)
