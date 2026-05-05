@@ -337,15 +337,40 @@ exports.importUsersCSV = async (req, res) => {
     const seenCodes = new Set();
     const batchSize = 500;
 
+    const expectedHeaders = [
+      "StudentReferencesCode",
+      "designation",
+      "division",
+      "name",
+      "gender",
+      "email",
+      "mobile",
+      "parentContact",
+      "userType",
+    ];
+    let headersValid = true;
+
     const stream = Readable.from(req.file.buffer);
 
     stream
       .pipe(csv())
-      .on("data", (data) => results.push(data))
+      .on("headers", (headers) => {
+        const isValid = expectedHeaders.every((h) => headers.includes(h));
+        if (!isValid) {
+          headersValid = false;
+        }
+      })
+      .on("data", (data) => {
+        if (headersValid) results.push(data);
+      })
       .on("error", (error) => {
         return responseHandler(res, 500, `CSV parse error: ${error.message}`);
       })
       .on("end", async () => {
+        if (!headersValid) {
+          return responseHandler(res, 400, "CSV headers do not match the expected format. Please download existing users to get the correct format.");
+        }
+
         try {
           for (let i = 0; i < results.length; i += batchSize) {
             const batch = results.slice(i, i + batchSize);
