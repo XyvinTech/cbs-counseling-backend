@@ -7,6 +7,6 @@ const upload = multer({ storage: multer.memoryStorage() });
 
 router.use(authVerify);
 router.post("/import", upload.single("file"), userCsv.importUsersCSV);
-router.get("/export", userCsv.exportUsersCSV);
+router.post("/export", userCsv.exportUsersCSV);
 
 module.exports = router;
