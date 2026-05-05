@@ -18,6 +18,7 @@ const eventRoutes = require("./src/modules/event/event.routes");
 const sessionRoute = require("./src/modules/session/session.routes");
 const timeRoute = require("./src/modules/time/time.routes");
 const reportRoute = require("./src/modules/report/report.routes");
+const userCsvRoutes = require("./src/modules/user-csv/userCsv.routes");
 
 //! Creatde an instance of the Express application
 const app = express();
@@ -57,6 +58,7 @@ app.get(BASE_PATH, (req, res) => {
 //* Configure routes for user API
 app.use(`${BASE_PATH}/auth`, authRoutes);
 app.use(`${BASE_PATH}/users`, userRoutes);
+app.use(`${BASE_PATH}/user-csv`, userCsvRoutes);
 app.use(`${BASE_PATH}/counselling-type`, typeRoutes);
 app.use(`${BASE_PATH}/backup`, backupRoutes);
 app.use(`${BASE_PATH}/dashboard`, dashboardRoutes);
