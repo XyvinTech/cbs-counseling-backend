@@ -53,7 +53,6 @@ exports.importUsersCSV = async (req, res) => {
       "email",
       "mobile",
       "parentContact",
-      "userType",
     ];
     let headersValid = true;
 
@@ -75,7 +74,7 @@ exports.importUsersCSV = async (req, res) => {
       })
       .on("end", async () => {
         if (!headersValid) {
-          return responseHandler(res, 400, "CSV headers do not match the expected format. Please download existing users to get the correct format.");
+          return responseHandler(res, 400, "CSV headers do not match the expected student roster format. Download the student export for the correct columns.");
         }
 
         try {
@@ -93,7 +92,6 @@ exports.importUsersCSV = async (req, res) => {
                 email,
                 mobile,
                 parentContact,
-                userType,
               } = user;
 
               if (!StudentReferencesCode) {
@@ -118,7 +116,7 @@ exports.importUsersCSV = async (req, res) => {
                       email,
                       mobile,
                       parentContact,
-                      userType,
+                      userType: "student",
                       status: true,
                     },
                   },
@@ -133,8 +131,9 @@ exports.importUsersCSV = async (req, res) => {
           }
 
           if (seenCodes.size > 0) {
-            const inactiveResult = await User.updateMany(
+            await User.updateMany(
               {
+                userType: "student",
                 StudentReferencesCode: {
                   $nin: Array.from(seenCodes),
                 },
@@ -155,8 +154,11 @@ exports.importUsersCSV = async (req, res) => {
 
 exports.exportUsersCSV = async (req, res) => {
   try {
-    const users = await User.find({ status: { $ne: false } }).lean();
-    
+    const users = await User.find({
+      userType: "student",
+      status: { $ne: false },
+    }).lean();
+
     const fields = [
       "StudentReferencesCode",
       "designation",
@@ -166,7 +168,6 @@ exports.exportUsersCSV = async (req, res) => {
       "email",
       "mobile",
       "parentContact",
-      "userType",
     ];
 
     const csvRows = [];
