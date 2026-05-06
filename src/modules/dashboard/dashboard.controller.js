@@ -4,6 +4,10 @@ const Case = require("../../models/caseModel");
 const Event = require("../../models/eventModel");
 const Session = require("../../models/sessionModel");
 const User = require("../../models/userModel");
+const {
+  getStaffUserCount,
+  MAX_STAFF_USERS,
+} = require("../../helpers/userLimitCheck");
 
 exports.dashboard = async (req, res) => {
   try {
@@ -29,12 +33,14 @@ exports.dashboard = async (req, res) => {
       case_count,
       session_count,
       event_count,
+      staff_user_count,
     ] = await Promise.all([
       User.countDocuments({ userType: "student" }),
       User.countDocuments({ userType: "counsellor" }),
       Case.countDocuments(),
       Session.countDocuments(),
       Event.countDocuments(),
+      getStaffUserCount(),
     ]);
 
     const dashboardData = {
@@ -43,6 +49,8 @@ exports.dashboard = async (req, res) => {
       case_count,
       session_count,
       event_count,
+      staff_user_count,
+      max_staff_users: MAX_STAFF_USERS,
     };
 
     return responseHandler(

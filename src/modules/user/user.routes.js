@@ -11,6 +11,7 @@ router.use(authVerify);
 router.route("/").post(user.createUser).get(user.getProfile);
 router.route("/bulk").post(user.bulkCreate).delete(user.bulkDelete);
 router.get("/list", user.getUsers);
+router.get("/staff-count", user.getStaffUserCount);
 router.post("/seed-users", upload.single("file"), user.seedUsers);
 router
   .route("/:id")

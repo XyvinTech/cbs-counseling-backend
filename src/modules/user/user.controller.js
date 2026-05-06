@@ -11,7 +11,24 @@ const {
 const Session = require("../../models/sessionModel");
 const Case = require("../../models/caseModel");
 const Notification = require("../../models/notificationModel");
+const {
+  canCreateStaffUser,
+  getStaffUserCount,
+  MAX_STAFF_USERS,
+  isExcludedStaffEmail,
+} = require("../../helpers/userLimitCheck");
 
+exports.getStaffUserCount = async (req, res) => {
+  try {
+    const currentCount = await getStaffUserCount();
+    return responseHandler(res, 200, "Success", {
+      currentCount,
+      maxCount: MAX_STAFF_USERS,
+    });
+  } catch (error) {
+    return responseHandler(res, 500, `Internal Server Error ${error.message}`);
+  }
+};
 
 exports.createUser = async (req, res) => {
   try {
@@ -23,6 +40,21 @@ exports.createUser = async (req, res) => {
     const { error } = schema.validate(req.body, { abortEarly: true });
     if (error)
       return responseHandler(res, 400, `Invalid input: ${error.message}`);
+
+    const staffTypes = ["counsellor", "admin"];
+    if (
+      staffTypes.includes(req.body.userType) &&
+      !isExcludedStaffEmail(req.body.email)
+    ) {
+      const { allowed } = await canCreateStaffUser(1);
+      if (!allowed) {
+        return responseHandler(
+          res,
+          403,
+          "User limit reached. Maximum 10 staff users allowed."
+        );
+      }
+    }
 
     const password = generateRandomPassword();
     req.body.password = await hashPassword(password);
@@ -117,6 +149,20 @@ exports.bulkCreate = async (req, res) => {
         duplicateEmails,
         duplicateMobiles,
       });
+    }
+
+    if (userType === "counsellor") {
+      const toCount = users.filter((u) => !isExcludedStaffEmail(u.email)).length;
+      if (toCount > 0) {
+        const { allowed } = await canCreateStaffUser(toCount);
+        if (!allowed) {
+          return responseHandler(
+            res,
+            403,
+            "User limit reached. Maximum 10 staff users allowed."
+          );
+        }
+      }
     }
 
     const hashedUsers = await Promise.all(
