@@ -5,10 +5,6 @@ const { generateOTP } = require("../../utils/generateOTP");
 const { generateToken } = require("../../utils/generateToken");
 const sendMail = require("../../utils/sendMail");
 const validation = require("../../validations");
-const {
-  canCreateStaffUser,
-  isExcludedStaffEmail,
-} = require("../../helpers/userLimitCheck");
 
 exports.signup = async (req, res) => {
   try {
@@ -21,17 +17,6 @@ exports.signup = async (req, res) => {
 
     const findUser = await User.findOne({ email: req.body.email });
     if (findUser) return responseHandler(res, 400, "Failure");
-
-    if (!isExcludedStaffEmail(req.body.email)) {
-      const { allowed } = await canCreateStaffUser(1);
-      if (!allowed) {
-        return responseHandler(
-          res,
-          403,
-          "User limit reached. Maximum 10 staff users allowed."
-        );
-      }
-    }
 
     req.body.userType = "admin";
     const hashedPassword = await hashPassword(req.body.password);
@@ -63,6 +48,13 @@ exports.login = async (req, res) => {
         "Incorrect email or password."
       );
     }
+    if (user.status === false) {
+      return responseHandler(
+        res,
+        403,
+        "Your account is inactive. Contact your IT administrator to restore access."
+      );
+    }
     const token = generateToken(user._id);
     const data = {
       token,
@@ -84,6 +76,13 @@ exports.sendOTP = async (req, res) => {
     const user = await User.findOne({ email });
     if (!user) {
       return responseHandler(res, 404, "User not found");
+    }
+    if (user.status === false) {
+      return responseHandler(
+        res,
+        403,
+        "Your account is inactive. Contact your IT administrator to restore access."
+      );
     }
 
     const otp = generateOTP(5);
@@ -115,6 +114,13 @@ exports.verifyOTP = async (req, res) => {
     const user = await User.findOne({ email });
     if (!user) {
       return responseHandler(res, 404, "User not found");
+    }
+    if (user.status === false) {
+      return responseHandler(
+        res,
+        403,
+        "Your account is inactive. Contact your IT administrator to restore access."
+      );
     }
 
     if (user.otp !== otp) {
@@ -158,6 +164,13 @@ exports.resetPassword = async (req, res) => {
     const user = await User.findById(id);
     if (!user) {
       return responseHandler(res, 404, "User not found");
+    }
+    if (user.status === false) {
+      return responseHandler(
+        res,
+        403,
+        "Your account is inactive. Contact your IT administrator to restore access."
+      );
     }
 
     const isPasswordValid = await comparePasswords(oldPassword, user.password);

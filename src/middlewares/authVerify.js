@@ -29,6 +29,13 @@ const authVerify = async (req, res, next) => {
     if (!user) {
       return responseHandler(res, 401, "User not found.");
     }
+    if (user.status === false) {
+      return responseHandler(
+        res,
+        403,
+        "Your account is inactive. Contact your IT administrator."
+      );
+    }
 
     req.user = user;
     next();

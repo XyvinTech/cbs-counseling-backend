@@ -12,19 +12,16 @@ const Session = require("../../models/sessionModel");
 const Case = require("../../models/caseModel");
 const Notification = require("../../models/notificationModel");
 const {
-  canCreateStaffUser,
-  getStaffUserCount,
-  MAX_STAFF_USERS,
+  canCreateCounsellor,
+  getStaffCountPayload,
+  MAX_ACTIVE_COUNSELLORS,
   isExcludedStaffEmail,
 } = require("../../helpers/userLimitCheck");
 
 exports.getStaffUserCount = async (req, res) => {
   try {
-    const currentCount = await getStaffUserCount();
-    return responseHandler(res, 200, "Success", {
-      currentCount,
-      maxCount: MAX_STAFF_USERS,
-    });
+    const payload = await getStaffCountPayload();
+    return responseHandler(res, 200, "Success", payload);
   } catch (error) {
     return responseHandler(res, 500, `Internal Server Error ${error.message}`);
   }
@@ -41,17 +38,16 @@ exports.createUser = async (req, res) => {
     if (error)
       return responseHandler(res, 400, `Invalid input: ${error.message}`);
 
-    const staffTypes = ["counsellor", "admin"];
     if (
-      staffTypes.includes(req.body.userType) &&
+      req.body.userType === "counsellor" &&
       !isExcludedStaffEmail(req.body.email)
     ) {
-      const { allowed } = await canCreateStaffUser(1);
+      const { allowed } = await canCreateCounsellor(1);
       if (!allowed) {
         return responseHandler(
           res,
           403,
-          "User limit reached. Maximum 10 staff users allowed."
+          "Counsellor limit reached. Maximum 10 active counsellors allowed."
         );
       }
     }
@@ -97,6 +93,24 @@ exports.updateUser = async (req, res) => {
     if (!id) {
       return responseHandler(res, 400, "User ID is required");
     }
+    const existing = await User.findById(id);
+    if (!existing) {
+      return responseHandler(res, 404, "User not found");
+    }
+    const reactivatingCounsellor =
+      req.body.status === true &&
+      existing.status === false &&
+      existing.userType === "counsellor";
+    if (reactivatingCounsellor && !isExcludedStaffEmail(existing.email)) {
+      const { allowed } = await canCreateCounsellor(1);
+      if (!allowed) {
+        return responseHandler(
+          res,
+          403,
+          "Counsellor limit reached. Maximum 10 active counsellors allowed. Deactivate another counsellor or contact IT."
+        );
+      }
+    }
     const user = await User.findByIdAndUpdate(id, req.body, {
       new: true,
     });
@@ -117,8 +131,30 @@ exports.getUser = async (req, res) => {
 
 exports.deleteUser = async (req, res) => {
   try {
-    const user = await User.findByIdAndDelete(req.params.id);
-    return responseHandler(res, 200, "Success", user);
+    const existing = await User.findById(req.params.id);
+    if (!existing) {
+      return responseHandler(res, 404, "User not found");
+    }
+    if (
+      existing.userType === "counsellor" ||
+      existing.userType === "admin"
+    ) {
+      const user = await User.findByIdAndUpdate(
+        req.params.id,
+        { status: false },
+        { new: true }
+      )
+        .select("-password -otp")
+        .lean();
+      return responseHandler(
+        res,
+        200,
+        "Counselor deactivated successfully. They can no longer sign in until reactivated.",
+        user
+      );
+    }
+    await User.findByIdAndDelete(req.params.id);
+    return responseHandler(res, 200, "Success", existing);
   } catch (error) {
     return responseHandler(res, 500, `Internal Server Error ${error.message}`);
   }
@@ -154,12 +190,12 @@ exports.bulkCreate = async (req, res) => {
     if (userType === "counsellor") {
       const toCount = users.filter((u) => !isExcludedStaffEmail(u.email)).length;
       if (toCount > 0) {
-        const { allowed } = await canCreateStaffUser(toCount);
+        const { allowed } = await canCreateCounsellor(toCount);
         if (!allowed) {
           return responseHandler(
             res,
             403,
-            "User limit reached. Maximum 10 staff users allowed."
+            "Counsellor limit reached. Maximum 10 active counsellors allowed."
           );
         }
       }
@@ -223,12 +259,26 @@ exports.bulkDelete = async (req, res) => {
 
 exports.getUsers = async (req, res) => {
   try {
-    let { type, page, searchQuery, limit = 10, user = "paginated" } = req.query;
+    let {
+      type,
+      page,
+      searchQuery,
+      limit = 10,
+      user = "paginated",
+      activeOnly,
+      inactiveOnly,
+    } = req.query;
     page = parseInt(page);
     limit = parseInt(limit);
     const skipCount = limit * (page - 1);
 
     const filter = {};
+
+    if (inactiveOnly === "true" || inactiveOnly === true) {
+      filter.status = false;
+    } else if (activeOnly === "true" || activeOnly === true) {
+      filter.status = { $ne: false };
+    }
 
     if (searchQuery) {
       filter.$or = [
@@ -282,11 +332,14 @@ exports.getCounsellors = async (req, res) => {
     if (counsellorType) {
       counsellors = await User.find({
         counsellorType: { $in: [counsellorType] },
+        userType: "counsellor",
+        status: { $ne: false },
       });
     } else {
       counsellors = await User.find({
         _id: { $ne: counsellor },
         userType: "counsellor",
+        status: { $ne: false },
       });
     }
     const mappedData = counsellors.map((counsellor) => {
